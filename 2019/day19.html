@@ -1,0 +1,214 @@
+<html>
+
+<body>
+    <script>
+        let inputs = [];
+        const outputs = [];
+        const intCode = function (x, startP = 0, me = 0) {
+            const xs = x.split(",").map(a => parseInt(a));
+            let size = 4;
+            let relativeBase = 0;
+            for (p = startP; ; p += size) {
+                const instruction = String(xs[p]);
+                const op = parseInt(instruction.substring(instruction.length - 2));
+                const parameterModes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                for (ii = 0; ii < instruction.length - 2; ii++) {
+                    parameterModes[ii] = parseInt(instruction.substring(instruction.length - 2 - ii - 1, instruction.length - 2 - ii));
+                }
+                if (op != null) {
+
+                    if (op == 1) {
+                        setParam(xs, parameterModes, p, 3, relativeBase, getParam(xs, parameterModes, p, 1, relativeBase) + getParam(xs, parameterModes, p, 2, relativeBase));
+                        size = 4;
+
+                    } else if (op == 2) {
+                        setParam(xs, parameterModes, p, 3, relativeBase, getParam(xs, parameterModes, p, 1, relativeBase) * getParam(xs, parameterModes, p, 2, relativeBase));
+                        size = 4;
+
+                    } else if (op == 3) {
+                        const input = inputs.shift();
+                        userInput = input;
+                        //console.log("using input " + userInput);
+                        setParam(xs, parameterModes, p, 1, relativeBase, userInput);
+                        size = 2;
+                    } else if (op == 4) {
+                        lastOutput = getParam(xs, parameterModes, p, 1, relativeBase);
+                        //console.log("output is " + lastOutput);
+                        outputs.push(lastOutput);
+                        lastOutputMe = me;
+                        size = 2;
+
+                    } else if (op == 5) {
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) != 0) {
+                            p = getParam(xs, parameterModes, p, 2, relativeBase);
+                            size = 0;
+                        } else {
+                            size = 3;
+                        }
+
+                    } else if (op == 6) {
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) == 0) {
+                            p = getParam(xs, parameterModes, p, 2, relativeBase);
+                            size = 0;
+                        } else {
+                            size = 3;
+                        }
+
+                    } else if (op == 7) {
+                        size = 4;
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) < getParam(xs, parameterModes, p, 2, relativeBase)) {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 1);
+                        } else {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 0);
+                        }
+
+                    } else if (op == 8) {
+                        size = 4;
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) == getParam(xs, parameterModes, p, 2, relativeBase)) {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 1);
+                        } else {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 0);
+                        }
+
+                    } else if (op == 9) {
+                        relativeBase += getParam(xs, parameterModes, p, 1, relativeBase);
+                        size = 2;
+
+                    } else if (op == 99) {
+                        break;
+
+                    } else {
+                        throw "not expected!" + xs.toString();
+                    }
+                } else {
+                    break;
+                }
+            }
+            return { memory: xs.toString(), p: null };
+        }
+
+        const getParam = function (array, parameterModes, globalPosition, localPosition, relativeBase) {
+            if (relativeBase == null) throw "no base";
+            let toReturn = null;
+            if (parameterModes[localPosition - 1] == 1) {
+                toReturn = array[globalPosition + localPosition];
+            } else if (parameterModes[localPosition - 1] == 0) {
+                toReturn = array[array[globalPosition + localPosition]];
+            } else if (parameterModes[localPosition - 1] == 2) {
+
+                toReturn = array[relativeBase + array[globalPosition + localPosition]];
+            } else {
+                throw "Not expected param mode!";
+            }
+            if (toReturn == null) toReturn = 0;
+            return toReturn;
+        }
+
+        const setParam = function (array, parameterModes, globalPosition, localPosition, relativeBase, val) {
+            if (relativeBase == null) throw "no base";
+            if (parameterModes[localPosition - 1] == 0) {
+                array[array[globalPosition + localPosition]] = val;
+            } else if (parameterModes[localPosition - 1] == 1) {
+                throw "write param";
+            } else if (parameterModes[localPosition - 1] == 2) {
+                array[relativeBase + array[globalPosition + localPosition]] = val;
+
+            } else {
+                throw "Not expected param mode!";
+            }
+        }
+
+        const prog = "109,424,203,1,21101,11,0,0,1105,1,282,21101,18,0,0,1105,1,259,2101,0,1,221,203,1,21101,31,0,0,1106,0,282,21102,1,38,0,1106,0,259,21002,23,1,2,22102,1,1,3,21101,0,1,1,21101,0,57,0,1105,1,303,1202,1,1,222,21002,221,1,3,20102,1,221,2,21102,259,1,1,21101,0,80,0,1105,1,225,21101,104,0,2,21101,0,91,0,1106,0,303,2101,0,1,223,20102,1,222,4,21101,0,259,3,21102,1,225,2,21102,1,225,1,21102,1,118,0,1106,0,225,20102,1,222,3,21101,67,0,2,21102,133,1,0,1105,1,303,21202,1,-1,1,22001,223,1,1,21102,148,1,0,1105,1,259,1202,1,1,223,20102,1,221,4,21001,222,0,3,21101,0,18,2,1001,132,-2,224,1002,224,2,224,1001,224,3,224,1002,132,-1,132,1,224,132,224,21001,224,1,1,21101,195,0,0,105,1,109,20207,1,223,2,21001,23,0,1,21101,-1,0,3,21102,214,1,0,1105,1,303,22101,1,1,1,204,1,99,0,0,0,0,109,5,1202,-4,1,249,22101,0,-3,1,22102,1,-2,2,21202,-1,1,3,21101,250,0,0,1106,0,225,21202,1,1,-4,109,-5,2106,0,0,109,3,22107,0,-2,-1,21202,-1,2,-1,21201,-1,-1,-1,22202,-1,-2,-2,109,-3,2106,0,0,109,3,21207,-2,0,-1,1206,-1,294,104,0,99,21201,-2,0,-2,109,-3,2106,0,0,109,5,22207,-3,-4,-1,1206,-1,346,22201,-4,-3,-4,21202,-3,-1,-1,22201,-4,-1,2,21202,2,-1,-1,22201,-4,-1,1,21202,-2,1,3,21102,343,1,0,1106,0,303,1105,1,415,22207,-2,-3,-1,1206,-1,387,22201,-3,-2,-3,21202,-2,-1,-1,22201,-3,-1,3,21202,3,-1,-1,22201,-3,-1,2,22101,0,-4,1,21101,384,0,0,1106,0,303,1106,0,415,21202,-4,-1,-4,22201,-4,-3,-4,22202,-3,-2,-2,22202,-2,-4,-4,22202,-3,-2,-3,21202,-4,-1,-2,22201,-3,-2,1,21201,1,0,-4,109,-5,2106,0,0";
+
+        const width = 1200;
+        const startX = 500;
+        const height = 1200;
+        const startY = 500;
+        let lastWidth = width;
+        let hasBeenJBeam = [];
+        for (let i = startY; i < height; i++) {
+            let hasBeenIBeam = false;
+            for (let j = startX; j < width; j++) {
+                if (hasBeenIBeam && (outputs[outputs.length - 1] == 0 || outputs[outputs.length - 1] == -1 || outputs[outputs.length - 1] == -2)) {
+                    outputs.push(-1);
+                    lastWidth = j;
+                    break;
+                } else if (hasBeenJBeam[j] == true && (outputs[outputs.length - 1 - lastWidth + startX] <= 0)) {
+                    outputs.push(-2);
+                    //break;
+                } else {
+                    inputs = [i, j];
+                    intCode(prog);
+                }
+                if (outputs[outputs.length - 1] == 1) {
+                    hasBeenIBeam = true;
+                    hasBeenJBeam[j] = true;
+                }
+            }
+        }
+        console.log(outputs.filter(a => a == 1).length);
+
+        /*let x = startX;
+        let str = "";
+        outputs.forEach(a => {
+            str += (a == 1 ? "#" : (a < 0 ? "," : "."));
+            x++;
+            if (x >= width || a == -1) { str += "\n"; x = startX; }
+        });
+        const pre = document.createElement("PRE");
+        pre.innerHTML = str;
+        document.body.appendChild(pre);
+        */
+
+        const parseToArray = function(outputs) {
+            const grid = [];
+            let x = startX;
+            let y = startY;
+            outputs.forEach(a => {
+                if (a == 1) {
+                    grid.push({ x, y });
+                }
+                x++;
+                if (x >= width || a == -1) { x = startX; y++; }
+            });
+            return grid;
+        }
+        const pp = parseToArray(outputs);
+
+        const find = 100;
+
+        const rows = pp.filter(a => a.y > 0).map(a => a.y).filter((a, i, s) => s.indexOf(a) === i);
+        const points = pp.filter(a => a.y > 0);
+        let firstFound = null;
+        rows.forEach(a => {
+            const pointsInRow = points.filter(b => b.y == a);
+            console.log(pointsInRow.length);
+            if (pointsInRow.length >= find) {
+                pointsInRow.sort((a, b) => a.x - b.x);
+                if (firstFound == null 
+                    && points.find(c => c.y == a - find + 1 && c.x == pointsInRow[0].x) != null
+                    && points.find(c => c.y == a - find + 1 && c.x == pointsInRow[0].x + find - 1) != null) {
+                    firstFound = { x: pointsInRow[0].x, y: a - find + 1};
+                }
+            }
+        });
+
+        let x = startX;
+        let y = startY;
+        let str = "";
+        outputs.forEach(a => {
+            str += (a == 1 ? ((firstFound.x == x && firstFound.y == y) ? "O" : "#") : (a < 0 ? "," : "."));
+            x++;
+            if (x >= width || a == -1) { str += "\n"; x = startX; y++ }
+        });
+        const pre = document.createElement("PRE");
+        pre.innerHTML = str;
+        document.body.appendChild(pre);
+
+    </script>
+
+
+
+</body>
+
+</html>

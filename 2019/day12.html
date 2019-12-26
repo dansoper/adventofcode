@@ -1,0 +1,144 @@
+<html>
+
+<body>
+    <script>
+
+        /*let moons = [
+            { x: -8, y: -10, z: 0 },
+            { x: 5, y: 5, z: 10 },
+            { x: 2, y: -7, z: 3 },
+            { x: 9, y: -8, z: -3 }
+        ];
+        */
+
+        /*
+        let moons = [
+                    { x: -1, y: 0, z: 2 },
+                    { x: 2, y: -10, z: -7 },
+                    { x: 4, y: -8, z: 8 },
+                    { x: 3, y: 5, z: -1 }
+                ];*/
+
+        const lcds = [];
+
+
+        let moons = [
+            { x: -7, y: -8, z: 9 },
+            { x: -12, y: -3, z: -4 },
+            { x: 6, y: -17, z: -9 },
+            { x: 4, y: -10, z: -6 }
+        ];
+        moons = moons.map(a => { return { ...a, vx: 0, vy: 0, vz: 0 } });
+        const originals = moons.map(a => { return { ...a } });
+        /*
+                for (i = 0; i < 1000; i++) {
+                    for (let aindex = 0; aindex < moons.length; aindex++) {
+                        for (let bindex = aindex + 1; bindex < moons.length; bindex++) {
+                            const a = moons[aindex];
+                            const b = moons[bindex];
+                            if (bindex != aindex) {
+                                if (a.x > b.x) {
+                                    moons[aindex].vx -= 1;
+                                    moons[bindex].vx += 1;
+                                } else if (a.x < b.x) {
+                                    moons[aindex].vx += 1;
+                                    moons[bindex].vx -= 1;
+                                }
+                                if (a.y > b.y) {
+                                    moons[aindex].vy -= 1;
+                                    moons[bindex].vy += 1;
+                                } else if (a.y < b.y) {
+                                    moons[aindex].vy += 1;
+                                    moons[bindex].vy -= 1;
+                                }
+                                if (a.z > b.z) {
+                                    moons[aindex].vz -= 1;
+                                    moons[bindex].vz += 1;
+                                } else if (a.z < b.z) {
+                                    moons[aindex].vz += 1;
+                                    moons[bindex].vz -= 1;
+                                }
+                            }
+                        }
+                    }
+                    moons.forEach((a, index, array) => {
+                        array[index].x += a.vx;
+                        array[index].y += a.vy;
+                        array[index].z += a.vz;
+                        console.log(array[index].x);
+                    })
+                }
+        */
+
+        const letters = ["x", "y", "z"];
+        letters.forEach(l => {
+            moons = originals.map(a => { return { ...a } });
+            for (i = 0; ; i++) {
+                for (let aindex = 0; aindex < moons.length; aindex++) {
+                    for (let bindex = aindex + 1; bindex < moons.length; bindex++) {
+                        const a = moons[aindex];
+                        const b = moons[bindex];
+                        if (bindex != aindex) {
+                            letters.forEach(ll => {
+                                if (a[ll] > b[ll]) {
+                                    moons[aindex]["v" + ll] -= 1;
+                                    moons[bindex]["v" + ll] += 1;
+                                } else if (a[ll] < b[ll]) {
+                                    moons[aindex]["v" + ll] += 1;
+                                    moons[bindex]["v" + ll] -= 1;
+                                }
+                            });
+                        }
+                    }
+                }
+                moons.forEach((a, index, array) => {
+                    letters.forEach(ll => {
+                        array[index][ll] += a["v" + ll];
+                    });
+                })
+                let ok = true;
+                moons.forEach((a, index) => {
+                    if (a[l] == originals[index][l] && a["v" + l] == originals[index]["v" + l] && ok) ok = true; else ok = false;
+                });
+                if (ok) {
+                    console.log(l);
+                    console.log(i + 1);
+                    lcds.push(i + 1);
+                    break;
+                }
+            }
+        });
+
+        function gcd2(a, b) {
+            // Greatest common divisor of 2 integers
+            if (!b) return b === 0 ? a : NaN;
+            return gcd2(b, a % b);
+        }
+        function gcd(array) {
+            // Greatest common divisor of a list of integers
+            var n = 0;
+            for (var i = 0; i < array.length; ++i)
+                n = gcd2(array[i], n);
+            return n;
+        }
+        function lcm2(a, b) {
+            // Least common multiple of 2 integers
+            return a * b / gcd2(a, b);
+        }
+        function lcm(array) {
+            // Least common multiple of a list of integers
+            var n = 1;
+            for (var i = 0; i < array.length; ++i)
+                n = lcm2(array[i], n);
+            return n;
+        }
+
+        console.log(lcm(lcds));
+
+        //let energies = moons.map(a => ((Math.abs(a.x) + Math.abs(a.y) + Math.abs(a.z)) * (Math.abs(a.vx) + Math.abs(a.vy) + Math.abs(a.vz))));
+        //let energy = energies.reduce((prev, cur, index) => prev + cur);
+    </script>
+
+</body>
+
+</html>

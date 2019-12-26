@@ -1,0 +1,188 @@
+<html>
+
+<body>
+    <script>
+        const squares = [{ x: 20, y: 36, color: 1 }];
+        const moves = [
+            { x: 0, y: -1 },
+            { x: 1, y: 0 },
+            { x: 0, y: 1 },
+            { x: -1, y: 0 }
+        ];
+        let direction = 0;
+        let position = { x: 20, y: 36 };
+        let currentSquare = { x: 20, y: 36, color: 1 };
+        let outputIsColor = true;
+
+        const intCode = function (x, startP = 0, me = 0) {
+            const xs = x.split(",").map(a => parseInt(a));
+            let size = 4;
+            let relativeBase = 0;
+            for (p = startP; ; p += size) {
+                const instruction = String(xs[p]);
+                const op = parseInt(instruction.substring(instruction.length - 2));
+                const parameterModes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                for (ii = 0; ii < instruction.length - 2; ii++) {
+                    parameterModes[ii] = parseInt(instruction.substring(instruction.length - 2 - ii - 1, instruction.length - 2 - ii));
+                }
+                if (op != null) {
+
+                    if (op == 1) {
+                        setParam(xs, parameterModes, p, 3, relativeBase, getParam(xs, parameterModes, p, 1, relativeBase) + getParam(xs, parameterModes, p, 2, relativeBase));
+                        size = 4;
+
+                    } else if (op == 2) {
+                        setParam(xs, parameterModes, p, 3, relativeBase, getParam(xs, parameterModes, p, 1, relativeBase) * getParam(xs, parameterModes, p, 2, relativeBase));
+                        size = 4;
+
+                    } else if (op == 3) {
+                        currentSquare = squares.find(a => a.x == position.x && a.y == position.y);
+                        if (currentSquare == null) {
+                            currentSquare = { x: position.x, y: position.y, color: 0 };
+                            squares.push(currentSquare);
+                        }
+                        let userInput = currentSquare.color;
+                        console.log("using input " + userInput);
+
+                        setParam(xs, parameterModes, p, 1, relativeBase, userInput);
+                        size = 2;
+
+                    } else if (op == 4) {
+                        lastOutput = getParam(xs, parameterModes, p, 1, relativeBase);
+                        if (outputIsColor) {
+                            currentSquare.color = lastOutput;
+                            outputIsColor = false;
+                        } else {
+                            if (lastOutput == 0) {
+                                direction -= 1;
+                            } else if (lastOutput == 1) {
+                                direction += 1;
+                            } else {
+                                throw "direction?";
+                            }
+                            console.log("direction - " + direction);
+                            if (direction < 0) direction = 3;
+                            if (direction > 3) direction = 0;
+                            let move = moves[direction];
+                            console.log(move);
+                            position.x += move.x;
+                            position.y += move.y;
+                            outputIsColor = true;
+                        }
+                        lastOutputMe = me;
+                        console.log("output: " + getParam(xs, parameterModes, p, 1, relativeBase));
+                        size = 2;
+
+                    } else if (op == 5) {
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) != 0) {
+                            p = getParam(xs, parameterModes, p, 2, relativeBase);
+                            size = 0;
+                        } else {
+                            size = 3;
+                        }
+
+                    } else if (op == 6) {
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) == 0) {
+                            p = getParam(xs, parameterModes, p, 2, relativeBase);
+                            size = 0;
+                        } else {
+                            size = 3;
+                        }
+
+                    } else if (op == 7) {
+                        size = 4;
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) < getParam(xs, parameterModes, p, 2, relativeBase)) {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 1);
+                        } else {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 0);
+                        }
+
+                    } else if (op == 8) {
+                        size = 4;
+                        if (getParam(xs, parameterModes, p, 1, relativeBase) == getParam(xs, parameterModes, p, 2, relativeBase)) {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 1);
+                        } else {
+                            setParam(xs, parameterModes, p, 3, relativeBase, 0);
+                        }
+
+                    } else if (op == 9) {
+                        relativeBase += getParam(xs, parameterModes, p, 1, relativeBase);
+                        size = 2;
+
+                    } else if (op == 99) {
+                        break;
+
+                    } else {
+                        throw "not expected!" + xs.toString();
+                    }
+                } else {
+                    break;
+                }
+            }
+            return { memory: xs.toString(), p: null };
+        }
+
+        const getParam = function (array, parameterModes, globalPosition, localPosition, relativeBase) {
+            if (relativeBase == null) throw "no base";
+            let toReturn = null;
+            if (parameterModes[localPosition - 1] == 1) {
+                toReturn = array[globalPosition + localPosition];
+            } else if (parameterModes[localPosition - 1] == 0) {
+                toReturn = array[array[globalPosition + localPosition]];
+            } else if (parameterModes[localPosition - 1] == 2) {
+
+                toReturn = array[relativeBase + array[globalPosition + localPosition]];
+            } else {
+                throw "Not expected param mode!";
+            }
+            if (toReturn == null) toReturn = 0;
+            return toReturn;
+        }
+
+        const setParam = function (array, parameterModes, globalPosition, localPosition, relativeBase, val) {
+            if (relativeBase == null) throw "no base";
+            if (parameterModes[localPosition - 1] == 0) {
+                array[array[globalPosition + localPosition]] = val;
+            } else if (parameterModes[localPosition - 1] == 1) {
+                throw "write param";
+            } else if (parameterModes[localPosition - 1] == 2) {
+                array[relativeBase + array[globalPosition + localPosition]] = val;
+
+            } else {
+                throw "Not expected param mode!";
+            }
+        }
+
+
+        console.log(intCode("3,8,1005,8,330,1106,0,11,0,0,0,104,1,104,0,3,8,102,-1,8,10,101,1,10,10,4,10,1008,8,0,10,4,10,102,1,8,29,2,9,4,10,1006,0,10,1,1103,17,10,3,8,102,-1,8,10,101,1,10,10,4,10,108,0,8,10,4,10,101,0,8,61,1006,0,21,1006,0,51,3,8,1002,8,-1,10,101,1,10,10,4,10,108,1,8,10,4,10,1001,8,0,89,1,102,19,10,1,1107,17,10,1006,0,18,3,8,1002,8,-1,10,1001,10,1,10,4,10,1008,8,1,10,4,10,1001,8,0,123,1,9,2,10,2,1105,10,10,2,103,9,10,2,1105,15,10,3,8,102,-1,8,10,1001,10,1,10,4,10,1008,8,0,10,4,10,102,1,8,161,3,8,102,-1,8,10,101,1,10,10,4,10,108,1,8,10,4,10,101,0,8,182,3,8,1002,8,-1,10,101,1,10,10,4,10,1008,8,0,10,4,10,101,0,8,205,2,1102,6,10,1006,0,38,2,1007,20,10,2,1105,17,10,3,8,102,-1,8,10,1001,10,1,10,4,10,108,1,8,10,4,10,1001,8,0,241,3,8,102,-1,8,10,101,1,10,10,4,10,108,1,8,10,4,10,101,0,8,263,1006,0,93,2,5,2,10,2,6,7,10,3,8,102,-1,8,10,101,1,10,10,4,10,108,0,8,10,4,10,1001,8,0,296,1006,0,81,1006,0,68,1006,0,76,2,4,4,10,101,1,9,9,1007,9,1010,10,1005,10,15,99,109,652,104,0,104,1,21102,825594262284,1,1,21102,347,1,0,1105,1,451,21101,0,932855939852,1,21101,358,0,0,1106,0,451,3,10,104,0,104,1,3,10,104,0,104,0,3,10,104,0,104,1,3,10,104,0,104,1,3,10,104,0,104,0,3,10,104,0,104,1,21102,1,235152649255,1,21101,405,0,0,1105,1,451,21102,235350879235,1,1,21102,416,1,0,1106,0,451,3,10,104,0,104,0,3,10,104,0,104,0,21102,988757512972,1,1,21101,439,0,0,1106,0,451,21102,1,988669698828,1,21101,0,450,0,1106,0,451,99,109,2,22101,0,-1,1,21102,40,1,2,21102,1,482,3,21102,472,1,0,1106,0,515,109,-2,2105,1,0,0,1,0,0,1,109,2,3,10,204,-1,1001,477,478,493,4,0,1001,477,1,477,108,4,477,10,1006,10,509,1101,0,0,477,109,-2,2106,0,0,0,109,4,1202,-1,1,514,1207,-3,0,10,1006,10,532,21102,1,0,-3,21202,-3,1,1,21202,-2,1,2,21102,1,1,3,21102,1,551,0,1106,0,556,109,-4,2105,1,0,109,5,1207,-3,1,10,1006,10,579,2207,-4,-2,10,1006,10,579,22101,0,-4,-4,1105,1,647,21201,-4,0,1,21201,-3,-1,2,21202,-2,2,3,21102,598,1,0,1105,1,556,21202,1,1,-4,21101,0,1,-1,2207,-4,-2,10,1006,10,617,21102,1,0,-1,22202,-2,-1,-2,2107,0,-3,10,1006,10,639,21202,-1,1,1,21102,1,639,0,105,1,514,21202,-2,-1,-2,22201,-4,-2,-4,109,-5,2105,1,0"));
+
+// x is -20 to 47
+// y is -36 to 25
+
+squares.forEach(a => {
+  const div = document.createElement("DIV");
+  div.style.backgroundColor = (a.color == 1 ? "black" : "white");
+  div.style.width = "5px";
+  div.style.height = "5px";
+  div.style.position = "absolute";
+  div.style.top = (a.y * 5) + "px";
+  div.style.left = (a.x * 5) + "px"; 
+  document.body.appendChild(div);
+});
+
+
+//104,1125899906842624,99"));
+
+//1102,34915192,34915192,7,4,7,99,0"));
+
+//109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"));
+
+    </script>
+    <style>
+        body {
+            background-color: green;
+        }
+    </style>
+</body>
+
+</html>

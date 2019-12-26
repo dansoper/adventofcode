@@ -1,0 +1,233 @@
+<html>
+
+<body>
+    <script>
+        const input = `#....
+#...#
+##?##
+....#
+#.##.`;
+
+        const biodiversity = [];
+
+        const processInput = function (input) {
+            const grid = [];
+            const chars = input.split("");
+            let x = 0;
+            let y = 0;
+            chars.forEach(a => {
+                if (a == ".") {
+                    grid.push({ x, y, type: "space", z: 0 });
+                } else if (a == "#") {
+                    grid.push({ x, y, type: "bug", z: 0 });
+                }
+                x++;
+                if (a == "\n") {
+                    y++;
+                    x = 0;
+                }
+            });
+            return grid;
+        }
+
+        const pprocessMinute = function (grid) {
+            const newGrid = [];
+            grid.forEach(a => {
+                if (a.type == "bug") {
+                    const attachedBugCount = grid.filter(b => b.type == "bug" && ((a.x == b.x && a.y == b.y + 1) || (a.x == b.x && a.y == b.y - 1) || (a.x == b.x + 1 && a.y == b.y) || (a.x == b.x - 1 && a.y == b.y))).length;
+                    const b = { ...a };
+                    if (attachedBugCount != 1) {
+                        b.type = "space";
+                    }
+                    newGrid.push(b);
+                } else if (a.type == "space") {
+                    const attachedBugCount = grid.filter(b => b.type == "bug" && ((a.x == b.x && a.y == b.y + 1) || (a.x == b.x && a.y == b.y - 1) || (a.x == b.x + 1 && a.y == b.y) || (a.x == b.x - 1 && a.y == b.y))).length;
+                    const b = { ...a };
+                    if (attachedBugCount == 1 || attachedBugCount == 2) {
+                        b.type = "bug";
+                    }
+                    newGrid.push(b);
+                }
+            });
+            return newGrid;
+        }
+
+        const getBugCount = function (grid, a) {
+            return grid.filter(b => b.type == "bug" &&
+                (
+                    (a.z == b.z &&
+                        ((a.x == b.x && a.y == b.y + 1)
+                            || (a.x == b.x && a.y == b.y - 1)
+                            || (a.x == b.x + 1 && a.y == b.y)
+                            || (a.x == b.x - 1 && a.y == b.y)))
+                    ||
+                    (a.z == b.z - 1 && (
+                        (a.x == 1 && a.y == 2 && b.x == 0)
+                        || (a.x == 3 && a.y == 2 && b.x == 4)
+                        || (a.x == 2 && a.y == 1 && b.y == 0)
+                        || (a.x == 2 && a.y == 3 && b.y == 4)
+                    ))
+                    ||
+                    (a.z == b.z + 1 && (
+                        (b.x == 1 && b.y == 2 && a.x == 0)
+                        || (b.x == 3 && b.y == 2 && a.x == 4)
+                        || (b.x == 2 && b.y == 1 && a.y == 0)
+                        || (b.x == 2 && b.y == 3 && a.y == 4)
+                    ))
+                )).length;
+        }
+
+        const processMinute = function (grid) {
+            const newGrid = [];
+            grid.forEach(a => {
+                if (a.type == "bug") {
+                    const attachedBugCount = getBugCount(grid, a);
+                    const b = { ...a };
+                    if (attachedBugCount != 1) {
+                        b.type = "space";
+                    }
+                    newGrid.push(b);
+                } else if (a.type == "space") {
+                    const attachedBugCount = getBugCount(grid, a);
+                    const b = { ...a };
+                    if (attachedBugCount == 1 || attachedBugCount == 2) {
+                        b.type = "bug";
+                    }
+                    newGrid.push(b);
+                }
+            });
+            return newGrid;
+        }
+
+        const addLevels = function (grid) {
+            grid.sort((a, b) => a.z - b.z);
+            const zs = [];
+            const earliestZ = grid[0].z;
+            const latestZ = grid[grid.length - 1].z;
+
+            if (grid.some(a => a.z == earliestZ && a.type == "bug")) {
+                zs.push(earliestZ - 1);
+            }
+            if (grid.some(a => a.z == latestZ && a.type == "bug")) {
+                zs.push(latestZ + 1);
+            }
+
+            zs.forEach(z => {
+                for (let x = 0; x < 5; x++) {
+                    for (let y = 0; y < 5; y++) {
+                        if (x != 2 || y != 2) {
+                            grid.push({ x, y, z, type: "space" });
+                        }
+                    }
+                }
+            });
+        }
+
+
+        const writeGrid = function (grid) {
+            const pre = document.createElement("PRE");
+            let str = "";
+            let width = 5;
+            let height = 5;
+            let x = 0;
+            let y = 0;
+            while (true) {
+                const item = grid.find(a => a.x == x && a.y == y);
+                if (item.type == "space") str += ".";
+                else if (item.type == "bug") str += "#";
+                x++;
+                if (x >= width) {
+                    x = 0;
+                    y++;
+                    str += "\n";
+                    if (y >= height) break;
+                }
+            }
+            pre.innerHTML = str;
+            document.body.appendChild(pre);
+        }
+
+        const writeGrids = function (grid) {
+            grid.sort((a, b) => a.z - b.z);
+            const pre = document.createElement("PRE");
+            let str = "";
+            let width = 5;
+            let height = 5;
+            let firstZ = grid[0].z;
+            let lastZ = grid[grid.length - 1].z;
+            for (let z = firstZ; z <= lastZ; z++) {
+                let x = 0;
+                let y = 0;
+                while (true) {
+                    const item = grid.find(a => a.x == x && a.y == y && a.z == z);
+                    if (item == null) str += " ";
+                    else if (item.type == "space") str += ".";
+                    else if (item.type == "bug") str += "#";
+                    x++;
+                    if (x >= width) {
+                        x = 0;
+                        y++;
+                        str += "\n";
+                        if (y >= height) break;
+                    }
+                }
+                str += "\n\n";
+            }
+            pre.innerHTML = str;
+            document.body.appendChild(pre);
+        }
+
+        const getBiodiversity = function (grid) {
+            let total = 0;
+            let i = 0;
+            let width = 5;
+            let height = 5;
+            let x = 0;
+            let y = 0;
+            while (true) {
+                const item = grid.find(a => a.x == x && a.y == y);
+                if (item.type == "bug") total += Math.pow(2, i);
+                x++;
+                if (x >= width) {
+                    x = 0;
+                    y++;
+                    if (y >= height) break;
+                }
+                i++;
+            }
+            return total;
+        }
+
+        /*
+        const grid = processInput(input);
+        let newG = grid;
+        while (true) {
+            newG = processMinute(newG);
+            writeGrid(newG);
+            const b = getBiodiversity(newG);
+            if (biodiversity.some(a => a == b)) break;
+            biodiversity.push(b);
+        }
+        const b = getBiodiversity(newG);
+        console.log(b);
+        */
+
+        const grid = processInput(input);
+        addLevels(grid);
+        let newG = grid;
+        let i = 0;
+        while (true) {
+            newG = processMinute(newG);
+            addLevels(newG);
+            i++;
+            if (i == 200) break;
+        }
+        writeGrids(newG);
+        console.log(newG.filter(a => a.type == "bug").length)
+    </script>
+
+
+
+</body>
+
+</html>
