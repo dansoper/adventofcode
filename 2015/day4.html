@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <script src="utils/md5.js"></script>
+    </head>
+    <body>
+        <script>
+            const init = "iwrupvqb";
+            for (var i = 1; ; i++) {
+                const m = md5(init + i);
+                if (m.substring(0,6) == "000000") {
+                    console.log(i);
+                    break;
+                }
+            }
+        </script>
+    </body>
+</html>
