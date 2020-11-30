@@ -26,7 +26,7 @@
             const i = grid.findIndex(a => a.x == oxyGenN.x && a.y == oxyGenN.y);
             grid.splice(i, 1);
         }
-        grid.push({ x: oxyGenN.x, y: oxyGenN.y, type: "destination" });
+        grid.push({ x: oxyGenN.x, y: oxyGenN.y, type: "destination", end: true });
         grid.push({ x: 0, y: 0, type: "origin" });
 
 
@@ -42,13 +42,17 @@
             let str = "";
             for (let y = minY; y <= maxY; y++) {
                 for (let x = minX; x <= maxX; x++) {
-                    if (grid.some(a => a.x == x && a.y == y && a.type == "destination")) {
+                    if (grid.some(a => a.x == x && a.y == y && a.oxygenated)) {
+                        str += "O";
+                    } else if (grid.some(a => a.x == x && a.y == y && a.type == "destination")) {
                         str += "@";
                     } else if (x == 0 && y == 0) {
                         str += "D";
                     } else if (grid.some(a => a.x == x && a.y == y && a.type == "path" && a.intersection == true)) {
                         const g = grid.find(a => a.x == x && a.y == y && a.type == "path" && a.intersection == true)
                         str += String.fromCharCode(g.intersectionLabel);
+                    } else if (grid.some(a => a.x == x && a.y == y && a.type == "path" && a.end == true)) {
+                        str += "|";
                     } else if (grid.some(a => a.x == x && a.y == y && a.type == "path")) {
                         str += ".";
                     } else {
@@ -88,21 +92,43 @@
         }
         findIntersection(grid);
 
-        draw();
+        const findEnds = function (grid) {
+            grid.forEach(a => {
+                if (grid.filter(b =>
+                    (a.x == b.x && a.y == b.y - 1) ||
+                    (a.x == b.x && a.y == b.y + 1) ||
+                    (a.x == b.x - 1 && a.y == b.y) ||
+                    (a.x == b.x + 1 && a.y == b.y)).length == 1) {
+                    a.end = true;
+                    a.intersectionLabel = intersectionCount;
+                    intersectionCount++;
+                }
+            });
+        }
+
+
+        findEnds(grid);
+            draw();
 
 
         const getDistances = function (grid) {
-            grid.filter(a => a.intersection).forEach(a => {
+            grid.filter(a => a.intersection || a.end).forEach(a => {
                 const x = a.x;
                 const y = a.y;
                 getOptionsForItem(a, grid, { x: a.x, y: a.y });
             })
         }
 
-        const getOptionsForItem = function (item, grid, amAt, wasAt = null, moved = 0) {
+        const getOptionsForItem = function (item, grid, amAt, wasAt = null, moved = 0, path = []) {
+            if (path.length == 0) {
+                path.push(amAt);
+            }
             const movements = [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 0, y: -1 }];
             movements.forEach(a => {
                 const wouldBeAt = { x: amAt.x + a.x, y: amAt.y + a.y };
+                const subPath = [...path];
+                subPath.push(wouldBeAt);
+                        
                 if (wasAt != null && wouldBeAt.x == wasAt.x && wouldBeAt.y == wasAt.y) {
                     // NOT possible
                 } else if (grid.find(a => a.x == wouldBeAt.x && a.y == wouldBeAt.y) != null) {
@@ -111,15 +137,15 @@
                     if (n.intersectionLabel != null) {
                         if (item.distances == null) item.distances = {};
                         if (item.distances[n.intersectionLabel] != null) {
-                            if (item.distances[n.intersectionLabel] > moved + 1) {
-                                item.distances[n.intersectionLabel] = moved + 1;
+                            if (item.distances[n.intersectionLabel].distance > moved + 1) {
+                                item.distances[n.intersectionLabel] = { distance: moved + 1, path: subPath };
                             }
                         } else {
-                            item.distances[n.intersectionLabel] = moved + 1;
+                            item.distances[n.intersectionLabel] = {distance: moved + 1, path: subPath };
                         }
                     } else {
                         // Keep moving
-                        getOptionsForItem(item, grid, wouldBeAt, amAt, moved + 1);
+                        getOptionsForItem(item, grid, wouldBeAt, amAt, moved + 1, subPath);
                     }
                 } else {
                     // NOT possible
@@ -130,45 +156,10 @@
         getDistances(grid);
 
 
-        const options = [];
-        const getRoutes = function (portals, from, to, soFar = [], incomingLength = 0) {
-            if (options.some(a => a.length < incomingLength)) return;
-            soFar = [...soFar];
-            soFar.push({ p: from });
-            const starts = portals.filter(a => a.intersectionLabel == from);
-            starts.forEach(start => {
-                let length = incomingLength;
-                const connectedToStart = Object.keys(start.distances).filter(a => a != "AA");
-                if (connectedToStart.some(a => a == to)) {
-                    options.push({ route: [...soFar, { p: to }], length: length + start.distances[to] });
-                }
-                const moreOptions = connectedToStart.filter(a => !patternFound(soFar, a) && a != to);
-                moreOptions.forEach(a => {
-                    getRoutes(portals, a, to, soFar, length + start.distances[a]);
-                });
-            });
-        }
-
-        const patternFound = function (arr, extra) {
-            var newArray = arr.map(function (o, i) {
-                if (i < arr.length - 1) {
-                    return arr[i].p + "|" + arr[i + 1].p;
-                }
-            });
-            newArray.push(arr[arr.length - 1].p + "|" + extra);
-            newArray.sort();
-            newArray = newArray.filter(function (o, i) {
-                if (i < arr.length - 1) {
-                    return (o == newArray[i + 1]);
-                }
-            });
-            return newArray.length > 0;
-        }
-
         //getRoutes(grid.filter(a => a.intersection), 35, 36);
 
 
-        const getExpansion = function (portals, from, soFar = [], incomingLength = 0) {
+        /*const getExpansion = function (portals, from, soFar = [], incomingLength = 0) {
             //if (options.some(a => a.length < incomingLength)) return;
             const me = portals.find(a => a.intersectionLabel == from);
             if (me.oxygen == true && portals.filter(a => !a.oxygen).length == 0) {
@@ -197,6 +188,40 @@
 
         getExpansion(grid.filter(a => a.intersection), 36);
 
+        */
+        let step = -1;
+        //console.log(grid.find(a => a.type == "destination"));
+
+        let currentPaths = [[...grid.find(a => a.type == "destination").distances[78].path]];
+        console.log(grid.find(a => a.type == "destination").distances[78].path);
+        while(true) {
+            step++;
+            //console.log(step);
+            const cp = [...currentPaths];
+            cp.forEach(pathItem => {
+                //console.log(pathItem);
+                const entry = pathItem.shift();
+                const point = grid.find(a => a.x == entry.x && a.y == entry.y);
+                if (point.oxygenated == true) {
+                    currentPaths = currentPaths.filter(a => a != pathItem);
+                }
+                point.oxygenated = true;
+                if (pathItem.length == 0) {
+                    const thisIntersection = grid.find(a => a.x == entry.x && a.y == entry.y);
+                    Object.keys(thisIntersection.distances).forEach(a => {
+                        const newPath = [...thisIntersection.distances[a].path];
+                        newPath.shift();
+                        currentPaths.push(newPath);
+                    });
+                    currentPaths = currentPaths.filter(a => a != pathItem);
+                }
+            });
+            draw();
+            if (currentPaths.length == 0) break;s
+            if (step == 2000) break;
+        }
+        // 311
+        // -1 = 310
     </script>
 
 </body>

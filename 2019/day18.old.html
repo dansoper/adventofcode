@@ -1,0 +1,239 @@
+<html>
+
+<body>
+    <script>
+        const parseStringToObject = function (s) {
+            const grid = [];
+            const ss = s.split("");
+            let x = 0;
+            let y = 0;
+            ss.forEach(c => {
+                let pos = { x, y };
+                if (c == "#") {
+                    pos.type = "wall";
+                } else if (c == "@") {
+                    pos.type = "me";
+                } else if (c == ".") {
+                    pos.type = null;
+                } else if (c.charCodeAt(0) >= 65 && c.charCodeAt(0) <= 90) {
+                    pos.type = "door";
+                    pos.letter = c;
+                } else if (c.charCodeAt(0) >= 97 && c.charCodeAt(0) <= 122) {
+                    pos.type = "key";
+                    pos.letter = c.toUpperCase();
+                } else if (c == "\n") {
+                } else {
+                    throw "erm" + c;
+                }
+                //if (pos.type != null) {
+                    grid.push(pos);
+                //}
+                if (c == "\n") {
+                    x = 0;
+                    y++;
+                } else {
+                    x++;
+                }
+            });
+            return grid;
+        }
+
+        const parseObjectToString = function (o) {
+            let building = "";
+            for (let i = 0; ; i++) {
+                const inThisRow = o.filter(a => a.y == i);
+                if (inThisRow == null || inThisRow.length == 0) break;
+                for (let j = 0; ; j++) {
+                    const index = inThisRow.findIndex(a => a.x == j);
+                    if (index >= 0) {
+                        const it = inThisRow[index];
+                        if (it.type == "wall") {
+                            building += "#";
+                        } else if (it.type == "me") {
+                            building += "@";
+                        } else if (it.type == "key") {
+                            building += it.letter.toLowerCase();
+                        } else if (it.type == "door") {
+                            building += it.letter;
+                        } else {
+                            throw "not";
+                        }
+                        inThisRow.splice(index, 1);
+                    } else {
+                        building += ".";
+                    }
+                    if (inThisRow.length == 0) break;
+                }
+                building += "\n";
+            }
+            return building;
+        }
+        
+        const copyObject = function (o) {
+            return o.map(a => { return { ...a } });
+        }
+
+        const getPossibleMovements = function (o, wasAt, prev = null, length = 0, been = []) {
+            const poss = [
+                { x: -1, y: 0 },
+                { x: 1, y: 0 },
+                { x: 0, y: -1 },
+                { x: 0, y: 1 }
+            ];
+            const possForMe = [];
+            poss.forEach(p => {
+                const wouldBeAt = { x: wasAt.x + p.x, y: wasAt.y + p.y };
+                if (prev == null || prev.x != wouldBeAt.x || prev.y != wouldBeAt.y) {
+                    if (been.find(a => a.x == wouldBeAt.x && a.y == wouldBeAt.y) == null) {
+                        const there = o.find(a => a.x == wouldBeAt.x && a.y == wouldBeAt.y);
+                        if (there != null && (there.type != "door" && there.type != "wall")) {
+                            // if this is a key, then add it as an option
+                            if (there.type == "key") {
+                                possForMe.push({ goTo: there, length: length + 1 });
+                            } else {
+                                // if this is a path, then keep going
+                                const newBeen = [...been];
+                                newBeen.push(wouldBeAt);
+                                const opts = getPossibleMovements(o, wouldBeAt, wasAt, length + 1, newBeen);
+                                possForMe.push(...opts);
+                            }
+                        }
+                    } else console.log("reject");
+                }
+            });
+            return possForMe;
+        }
+
+        const move = function (o, m) {
+            const oo = copyObject(o);
+            const me = oo.find(a => a.type == "me");
+            me.type = null;
+            const goTo = oo.find(a => a.x == m.goTo.x && a.y == m.goTo.y);
+            if (goTo.type == "key") {
+                const door = oo.find(a => a.type == "door" && a.letter == goTo.letter);
+                if (door != null) {
+                door.type = null;
+                door.letter = null;
+                }
+            }
+            goTo.type = "me";
+            return oo;
+        }
+
+        const completeOptions = [];
+
+        const go = function (o, countSoFar = 0) {
+            const me = o.find(a => a.type == "me");
+            const mvts = getPossibleMovements(o, me);
+            const opts = [];
+            mvts.forEach(m => {
+                const obj = move(o, m);
+                const newCount = countSoFar + m.length;
+
+                if (obj.filter(a => a.type == "key").length == 0) {
+                    // WOOHOO
+                    completeOptions.push(newCount);
+                } else if (completeOptions.find(a => a < newCount) == null) {
+                    // If there are any "dones" with count less than this, stop
+                    opts.push({ o: obj, count: newCount });
+                }
+            });
+
+            return opts;
+        }
+
+        const doorCount = function (o) {
+            return o.filter(a => a.type == "door").length;
+        }
+        const keyCount = function (o) {
+            return o.filter(a => a.type == "key").length;
+        }
+
+        const o = parseStringToObject(`#################
+#i.G..c...e..H.p#
+########.########
+#j.A..b...f..D.o#
+########@########
+#k.E..a...g..B.n#
+########.########
+#l.F..d...h..C.m#
+#################`);
+
+        
+
+
+
+
+        const makeLetters = function (arr) {
+            const a = [...arr];
+            a.sort();
+            return a.join("");
+        }
+
+        let someOptions = go(o);
+        console.log(someOptions);
+
+        records = [];
+
+        let loop = 0;
+        while (someOptions.length > 0 && loop < 8) {
+            loop ++;
+            const newOptions = [];
+            someOptions.forEach(opt => {
+                const moreOpts = go(opt.o, opt.count);
+                newOptions.push(...moreOpts);
+            });
+            const outOptions = [];
+            newOptions.forEach(a => {
+                const me = a.o.find(b => b.type == "me");
+                const letters = makeLetters(a.o.filter(b => b.type == "key").map(b => b.letter));
+                const record = records.find(b => b.x == me.x && b.y == me.y && b.letters == letters);
+                if (record != null) {
+                    if (record.count <= a.count) {
+                        // NOTHING
+                    } else {
+                        records.push({ x: me.x, y: me.y, letters: letters, count: a.count });
+                        outOptions.push(a);
+                    }
+                } else {
+                    records.push({ x: me.x, y: me.y, letters: letters, count: a.count });
+                    outOptions.push(a);
+                }
+            });
+
+            someOptions = outOptions;
+            console.log(someOptions);
+
+            const ss = someOptions.map(a => a.count).sort((a, b) => a-b);
+            console.log(ss);
+            console.log(ss[ss.length -1] / ss[0]);
+            someOptions = someOptions.filter(a => a.count < (ss[0] * 1.6));
+
+            /*someOptions.forEach(a => {
+                console.log(keyCount(a.o));
+            });
+            someOptions.forEach(a => {
+                const me = a.o.find(b => b.type == "me")
+                we need to remove things that are worse here
+                const kc = keyCount(ao);
+
+                console.log(me.x, me.y);
+            })*/
+        }
+
+
+        /*for (let i = 1;; i++) {
+            if (levels[i] != null) {
+                levels[i].forEach(l => {
+                    go(l.o, i, l.goodMove, l.oldMe);
+                })
+            } else break;
+        }
+        console.log(c);*/
+    </script>
+
+
+
+</body>
+
+</html>
