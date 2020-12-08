@@ -1,5 +1,8 @@
 // @ts-check
 
+//credit https://github.com/werner77/AdventOfCode/blob/master/src/main/kotlin/com/behindmedia/adventofcode/year2019/Day18.kt
+//https://medium.com/@werner.altewischer/advent-of-code-day-18-2019-the-real-challenge-aea3d4e96708
+
         /** @type {(string) => boolean} */
         const isKey = (c) => {
             const m = keyCode(c);
