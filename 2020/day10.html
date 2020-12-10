@@ -1,0 +1,157 @@
+<html>
+    <body>
+        <script>
+            // @ts-check
+
+            /** 
+             * @param {string} input
+             * @returns {number[]}
+            */
+            const parseInputToNumberList = (input) => {
+                return input.split("\n").map(a => Number(a));
+            }
+
+            /** 
+             * @param {number[]} input
+             * @returns {number[]}
+            */
+            const findGaps = (input) => {
+                const arr = [...input];
+                arr.sort((a, b) => a - b);
+                
+                const gaps = [0,0,0,0];
+                let last = 0;
+                arr.forEach(a => {
+                    let ok = false;
+                    for (var i = 1; i <= 3; i++) {
+                        if (a == last + i) {
+                            gaps[i]++;
+                            ok = true;
+                        }
+                    }
+                    if (!ok) throw "AAAAARH";
+                    last = a;
+                })
+                gaps[3]++;
+
+                return gaps;
+            }
+
+            
+            /** 
+             * @param {number[]} input
+             * @returns {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}[]}
+            */
+            const findPaths = (input) => {
+                const highest = Math.max(...input);
+                const arr = input.map(a => { return { num: a, directPathsFrom: [], directPathsTo: [], branchesFromHere: [] };})
+                arr.push({ num: 0, directPathsTo: [], directPathsFrom: [], branchesFromHere: [] });
+                arr.push({ num: highest + 3, directPathsTo: [], directPathsFrom: [], branchesFromHere: [[highest+3]] });
+                arr.sort((a, b) => a.num - b.num);
+                arr.forEach(a => {
+                    for (var i = 1; i <= 3; i++) {
+                        if (arr.find(b => b.num == a.num + i) != null) {
+                            a.directPathsFrom.push(a.num + i);
+                            arr.find(b => b.num == a.num + i).directPathsTo.push(a.num);
+                        }
+                    }
+                });
+                return arr;
+            }
+
+            /** 
+             * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}[]} input
+             * @returns {void}
+            */
+            const sumPaths = (input) => {
+                const highest = Math.max(...input.map(a => a.num));
+                sumPathsToElement(input, input.find(a => a.num === highest));
+            }
+
+            /** @type {{ from: number, to: number}[]}
+            */
+            const doneFroms = [];
+
+            /** 
+             * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}[]} input
+             * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}} element
+             * @returns {void}
+            */
+            const sumPathsToElement = (input, element) => {
+                const placesToGo = [];
+                element.directPathsTo.forEach(newElementNum => {
+                    const newElement = input.find(a => a.num == newElementNum);
+                    let worthIt = false;
+                    element.branchesFromHere.forEach(br => {
+                        const newBranch = [newElement.num, ...br];
+                        if (newElement.branchesFromHere.find(a => arraysOfNumbersMatch(a, newBranch)) == null) {
+                            newElement.branchesFromHere.push(newBranch);
+                            worthIt = true;
+                        }
+                    });
+                    if (worthIt) {
+                        sumPathsToElement(input, newElement);
+                    }
+                });
+            }
+
+            /** 
+             * @param {number[]} arr1
+             * @param {number[]} arr1
+             * @returns {boolean}
+            */
+            const arraysOfNumbersMatch = (arr1, arr2) => {
+                if (arr1.length == arr2.length) {
+                    for (let i = 0; i < arr1.length; i++) {
+                        if (arr1[i] !== arr2[i]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            const cache = [];
+
+            /** 
+             * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}[]} arr
+             * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}} element
+             * @returns {number}
+            */
+            const pathCountFrom = (element, arr) => { //console.log(element.num);
+                if (cache[element.num] == null) {
+                    cache[element.num] = element.directPathsFrom.length + element.directPathsFrom.reduce((prev, curr) => {
+                        return prev + pathCountFrom(arr.find(a => a.num === curr), arr); 
+                    }, 0);
+                }
+                return cache[element.num];
+            }
+
+
+            const input = `16
+10
+15
+5
+1
+11
+7
+19
+6
+12
+4`;
+
+            const nums = parseInputToNumberList(input);
+            const gaps = findGaps(nums);
+            console.log(gaps[1] * gaps[3]);
+
+            const paths = findPaths(nums);
+            //sumPaths(paths);
+            //console.log(paths.find(a => a.num === 0).branchesFromHere.length);
+
+            const m = pathCountFrom(paths.find(a => a.num === 0), paths);
+            console.log(m);
+
+        </script>
+    </body>
+</html>
