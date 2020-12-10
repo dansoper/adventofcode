@@ -113,33 +113,152 @@
             }
 
             const cache = [];
+            const ccache = [];
 
             /** 
              * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}[]} arr
              * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}} element
              * @returns {number}
             */
-            const pathCountFrom = (element, arr) => { //console.log(element.num);
-                if (cache[element.num] == null) {
-                    cache[element.num] = element.directPathsFrom.length + element.directPathsFrom.reduce((prev, curr) => {
-                        return prev + pathCountFrom(arr.find(a => a.num === curr), arr); 
-                    }, 0);
+            const pathCountFrom = (element, arr) => {
+                if (ccache[element.num] == null) {
+                    let count = element.directPathsFrom.length;
+                    element.directPathsFrom.forEach(p => {
+                        count += (ccache[p] != null ? ccache[p] : pathCountFrom(arr.find(a => a.num === p), arr)) - 1;
+                    })
+                    ccache[element.num] = count;
                 }
-                return cache[element.num];
+                return ccache[element.num];
             }
 
+            // https://github.com/DanaL/AdventOfCode/blob/master/2020/Day10.cs credit
+            // Not sure why my pathCountFrom approach was so different
+            /** 
+             * @param {{ num: number, directPathsTo: number[], directPathsFrom: number[], branchesFromHere: number[][]}[]} adapters
+             * @param {number} index
+             * @returns {number}
+            */
+            const branchesFrom = (adapters, index) => {
+                const a = adapters[index].num;
 
-            const input = `16
+                if (cache[a] != null)
+                    return cache[a];
+
+                let count = 0;
+                let x = index + 1;                        
+                while (x < adapters.length && adapters[x].num - a <= 3)
+                {
+                    const b = adapters[x].num;
+                    count += 1 + (cache[b] != null ? cache[b] : branchesFrom(adapters, x));
+                    ++x;
+                }
+
+                cache[a] = count - 1;
+
+                return cache[a];            
+            }
+
+            const input = `144
 10
-15
-5
+75
+3
+36
+80
+143
+59
+111
+133
 1
-11
+112
+23
+62
+101
+137
+41
+24
+8
+121
+35
+105
+161
+69
+52
+21
+55
+29
+135
+142
+38
+108
+141
+115
+68
 7
-19
-6
-12
-4`;
+98
+82
+9
+72
+118
+27
+153
+140
+61
+90
+158
+102
+28
+134
+91
+2
+17
+81
+31
+15
+120
+20
+34
+56
+4
+44
+74
+14
+147
+11
+49
+128
+16
+99
+66
+47
+125
+155
+130
+37
+67
+54
+60
+48
+136
+89
+119
+154
+122
+129
+163
+73
+100
+85
+95
+30
+76
+162
+22
+79
+88
+150
+53
+63
+92`;
 
             const nums = parseInputToNumberList(input);
             const gaps = findGaps(nums);
@@ -149,9 +268,20 @@
             //sumPaths(paths);
             //console.log(paths.find(a => a.num === 0).branchesFromHere.length);
 
+            ccache[paths[paths.length - 1].num] = 1;
             const m = pathCountFrom(paths.find(a => a.num === 0), paths);
+            //console.log(paths);
             console.log(m);
 
+            cache[paths[paths.length - 1].num] = 0;
+            let p2 = 0;
+            let i = 1;
+            do
+            {
+                p2 += 1 + branchesFrom(paths, i);
+                ++i;
+            } while (paths[i].num <= 3);
+            console.log(p2);
         </script>
     </body>
 </html>
