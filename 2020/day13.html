@@ -1,0 +1,115 @@
+<html>
+
+<body>
+    <script>
+        // @ts-check
+
+        /** @typedef {{ number: number, offset: number}} BusInfo */
+
+        /** @param {string} input @returns {{buses: BusInfo[], startAt: number}} */
+        const parseInput = (input) => {
+            const lines = input.split("\n");
+            const startAt = Number(lines[0]);
+            const allBuses = lines[1].split(",");
+            /** @type {BusInfo[]} */
+            const buses = [];
+            allBuses.forEach((b, i) => {
+                buses.push({ number: b != "x" ? Number(b) : 0, offset: i });
+            })
+            return { buses, startAt };
+        }
+
+        /** @param {number} after @param {BusInfo[]} buses @return {{ bus: BusInfo, arrival: number }} */
+        const findFirstBus = (after, buses) => {
+            /** @type {{arrival: number, bus: BusInfo}[]} */
+            const arrivals = [];
+            buses.filter(a => a.number > 0).forEach(bus => {
+                const div = after / bus.number;
+                const arrival = Math.ceil(div) * bus.number;
+                arrivals.push({ arrival, bus });
+            });
+            arrivals.sort((a, b) => a.arrival - b.arrival);
+            return arrivals[0];
+        }
+
+
+        /*
+        ** Example:
+        **
+        ** Previous bus is 7, this bus is 13, with delay +1.
+        ** A time T is needed such that:
+        **      7x == T
+        **     13y == (T + 1)
+        **
+        ** Performing an iterative search for T on multiples of 7 and checking (T + 1)
+        ** eventually reveals that:
+        **   (7 * 11) == 77
+        **   (13 * 6) == 78
+        **
+        ** To find further times that match this condition, imagine some value W added to T.
+        **    7j == T + W
+        **   13k == (T + 1) + W
+        ** Substituting:
+        **    7j == 7x + W,  and j == x + (W / 7)
+        **   13k == 13y + W, and k == y + (W / 13)
+        ** For j and k to be integers, since x and y are integers, W must be a multiple of both 7 and 13.
+        ** Since all input numbers are conveniently prime, the smallest multiple of both 7 and 13 is (7 * 13).
+        ** Thus, W == (7 * 13) == 91.
+        **
+        **
+        ** Next, a time T is needed such that:
+        **      7x == T
+        **     13y == (T + 1)
+        **     59z == (T + 4)
+        **
+        ** Performing an iterative search from 77, adding multiples of 91, eventually reveals that:
+        **    (7 * 50) == 350
+        **   (13 * 27) == 351
+        **    (59 * 6) == 354
+        **
+        ** As above, the next T that matches this condition would be 350 + (7 * 13 * 59) == 350 + (5369) == 5719.
+        */
+
+        /** @param {BusInfo[]} buses @param {number} startAt @param {number} increment @returns {{ value: number, commonMultiple: number }} */
+        const findCommonMultiple = (buses, startAt, increment) => {
+            let at = startAt;
+            while (true) {
+                let success = true;
+                buses.forEach(bus => {
+                    const oo = (at + bus.offset) / bus.number;
+                    if (oo % 1 != 0) success = false;
+                });
+                if (success) {
+                    return { value: at, commonMultiple: increment * buses[buses.length - 1].number };
+                }
+                at += increment;
+            }
+        }
+
+
+        const input = `1001287
+13,x,x,x,x,x,x,37,x,x,x,x,x,461,x,x,x,x,x,x,x,x,x,x,x,x,x,17,x,x,x,x,19,x,x,x,x,x,x,x,x,x,29,x,739,x,x,x,x,x,x,x,x,x,41,x,x,x,x,x,x,x,x,x,x,x,x,23`;
+
+        const buses = parseInput(input);
+
+        const bus = findFirstBus(buses.startAt, buses.buses);
+        console.log((bus.bus.number * (bus.arrival - buses.startAt)));
+
+        /** @type {BusInfo[]} */
+        const testBuses = [buses.buses[0]];
+        let at = 0;
+        let multiple = buses.buses[0].number;
+        for (let i = 1; i < buses.buses.length; i++) {
+            if (buses.buses[i].number == 0) continue;
+            testBuses.push(buses.buses[i]);
+            const ret = findCommonMultiple(testBuses, at, multiple);
+            at = ret.value;
+            multiple = ret.commonMultiple;
+        }
+        console.log(at);
+
+    </script>
+
+</body>
+
+</html>
