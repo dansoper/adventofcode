@@ -1,0 +1,112 @@
+<html>
+    <body>
+        <script>
+            // @ts-check
+
+            /** @typedef {{ memoryPosition: number, value: number, mask: Mask }} Command */
+            /** @typedef {number[]} Mask */
+
+            /** @param input {string} @returns {Command[]} */
+            const parseInput = (input) => {
+                /** @type {Command[]} */
+                const commands = [];
+                const lines = input.split("\n");
+                let currentMask = [];
+                lines.forEach(line => {
+                    if (line.startsWith("mask")) {
+                        currentMask = [];
+                        const bits = line.split(" = ");
+                        const mask = bits[1];
+                        const chars = mask.split("").reverse();
+                        chars.forEach(c => {
+                            currentMask.push(c == "X" ? null : Number(c));
+                        });
+                    } else {
+                        const bits = line.split(" = ");
+                        const bit2 = bits[0].split("[");
+                        const bit3 = bit2[1].split("]");
+                        commands.push({ memoryPosition: Number(bit3[0]), value: Number(bits[1]), mask: currentMask });
+                    }
+                });
+                return commands;
+            }
+
+            /** @param command {Command} @param memory {number[]} */
+            const processCommand = (command, memory) => {
+                let val = BigInt(command.value);
+                command.mask.forEach((maskBin, index) => {
+                    if (maskBin === 1 || maskBin === 0) {
+                        let mask = BigInt(1) << BigInt(index); // set the bit to change: at position
+                        val = val & ~mask;
+                        mask = (BigInt(maskBin) << BigInt(index)) & mask // put the right bit in the right position, and add it to the mask 
+                        val = val | mask;
+                    }
+                });
+                memory[command.memoryPosition] = val;
+            }
+
+
+            /** @param {bigint} offset @param bit {number} @param {bigint} value @returns {bigint[]} */
+            const applyBitMask = (offset, bit, value) => {
+                /** @type {bigint[]} */
+                const vals = [];
+                if (bit === 1) {
+                    let mask = BigInt(1) << offset; // set the bit to change: at position
+                    let val = value & ~mask;
+                    mask = (BigInt(1) << BigInt(offset)) & mask // put the right bit in the right position, and add it to the mask 
+                    val = val | mask;
+                    vals.push(val);
+                } else if (bit == null) {
+                    vals.push(...applyBitMask(offset, 0, value));
+                    vals.push(...applyBitMask(offset, 1, value));
+                }
+                return vals;
+            }
+
+            /** @param command {Command} @param memory {number[]} */
+            const processCommandTwo = (command, memory) => {
+                let val = BigInt(command.value);
+                /** @type {bigint[]} */
+                let memLocations = [BigInt(command.memoryPosition)];
+                command.mask.forEach((maskBin, index) => {
+                    /** @type {bigint[]} */
+                    const nextMems = [];
+                    memLocations.forEach(a => {
+                        let theseMemLocations = applyBitMask(BigInt(index), maskBin, a);
+                        nextMems.push(...theseMemLocations);
+                    });
+                    memLocations = nextMems;
+                });
+                memory[command.memoryPosition] = val;
+            }
+
+            const input = `mask = 000000000000000000000000000000X1001X
+mem[42] = 100
+mask = 00000000000000000000000000000000X0XX
+mem[26] = 1`;
+
+            /** @type {number[]} */
+            const memory = [];
+
+            const commands = parseInput(input);
+            commands.forEach(command => {
+                processCommand(command, memory);
+            });
+            console.log(memory);
+            console.log(memory.reduce((prev, curr) => {
+                return prev + (curr != null ? curr : 0);
+            }, BigInt(0)))
+
+            /** @type {number[]} */
+            const memory2 = [];
+
+            commands.forEach(command => {
+                processCommandTwo(command, memory2);
+            });
+            console.log(memory2);
+            console.log(memory2.reduce((prev, curr) => {
+                return prev + (curr != null ? curr : 0);
+            }, BigInt(0)))
+        </script>
+    </body>
+</html>
