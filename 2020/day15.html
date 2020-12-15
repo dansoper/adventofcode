@@ -1,0 +1,54 @@
+<html>
+    <body>
+        <script>
+            // @ts-check
+
+            /** @returns {number[]} */
+            const parseInputToArray = (input) => {
+                return input.split(",").map(b => Number(b));
+            }
+
+            const input = "9,12,1,4,17,0,18";
+
+            /** @type {number[]} */
+            //const record = [];
+            /** @type {number[][]} */
+            const indexes = [];
+
+            const initialiseIndexForIndex = (indexes, index) => {
+                if (indexes[index] == null) indexes[index] = [];
+            }
+
+            const nums = parseInputToArray(input);
+
+            let i = 0;
+            let lastNumber = 0;
+            nums.forEach(n => {
+                lastNumber = n;
+                //record.push(n);
+                initialiseIndexForIndex(indexes, n);
+                indexes[n].push(i);
+                i++;
+            });
+            for (; i < 30000000; i++) {
+                //const lastNumber = record[i-1];
+                if (indexes[lastNumber].length == 1) {
+                    //record.push(0);
+                    lastNumber = 0;
+                    initialiseIndexForIndex(indexes, 0);
+                    indexes[0].push(i);
+                } else {
+                    const last = indexes[lastNumber][indexes[lastNumber].length - 2]
+                    //record.push(i - last - 1);
+                    lastNumber = i - last - 1;
+                    initialiseIndexForIndex(indexes, i - last - 1)
+                    indexes[i - last - 1].push(i);
+                }
+            }
+            console.log(lastNumber);
+            //console.log(record);
+            //console.log(record[2019]);
+
+        </script>
+    </body>
+</html>
