@@ -1,0 +1,212 @@
+<html>
+
+<body>
+    <script>
+        // @ts-check
+
+        /** @param {string} input @returns {number[]} */
+        const parseInput = (input) => {
+            return input.split("").map(a => Number(a));
+        }
+
+        function log(...oo) {
+            //console.log(...oo);
+        }
+
+        // https://stackoverflow.com/questions/42623071/maximum-call-stack-size-exceeded-with-math-min-and-math-max
+        function minMax2DArray(arr, idx) {
+            var max = -Number.MAX_VALUE,
+                min = Number.MAX_VALUE;
+            arr.forEach(function (e) {
+                if (max < e[idx]) {
+                    max = e[idx];
+                }
+                if (min > e[idx]) {
+                    min = e[idx];
+                }
+            });
+            return { max: max, min: min };
+        }
+
+        /** @param {number[]} cups @returns {number[]} */
+        const makeIndexes = (cups) => {
+            const indexes = [];
+            cups.forEach((a, i) => {
+                indexes[a] = i;
+            });
+            return indexes;
+        }
+
+        /** @param {number[]} cups */
+        const makeMillion = (cups) => {
+            const max = Math.max(...cups);
+            for (let i = max + 1; i <= 1000000; i++) {
+                cups.push(i);
+            }
+        }
+
+        /** @param {number[]} cups @returns {number[]} */
+        const makeNexts = (cups) => {
+            const nexts = [];
+            let lastC = 0;
+            cups.forEach((c, i) => {
+                if (i != 0) {
+                    nexts[lastC] = c;
+                }
+                lastC = c;
+            });
+            nexts[cups[cups.length - 1]] = cups[0];
+            return nexts;
+        }
+
+        /** @param {number[]} cups @param {number} current @param {number[]} indexes @returns {number} */
+        const moveOld = (cups, indexes, current) => {
+            const currentCup = cups[current];
+            log("currentCup", currentCup);
+            const threeCups = cups.splice(current + 1, 3);
+            indexes.forEach((a, i, arr) => {
+                if (a > current + 3) {
+                    arr[i] -= 3;
+                } else if (a > current) {
+                    arr[i] = -1;
+                }
+            });
+            if (threeCups.length === 2) {
+                threeCups.push(...cups.splice(0, 1));
+                indexes.forEach((a, i, arr) => {
+                    if (a >= 1) {
+                        arr[i] -= 1;
+                    } else {
+                        arr[i] = -1;
+                    }
+                });
+            } else if (threeCups.length === 1) {
+                threeCups.push(...cups.splice(0, 2));
+                indexes.forEach((a, i, arr) => {
+                    if (a >= 2) {
+                        arr[i] -= 2;
+                    } else {
+                        arr[i] = -1;
+                    }
+                });
+            } else if (threeCups.length === 0) {
+                threeCups.push(...cups.splice(0, 3));
+                indexes.forEach((a, i, arr) => {
+                    if (a >= 3) {
+                        arr[i] -= 3;
+                    } else {
+                        arr[i] = -1;
+                    }
+                });
+            }
+            log("threeCups", threeCups);
+            if (threeCups.length !== 3) throw "AR";
+            let destination = currentCup;
+            let destinationCupIndex = -1;
+            while (true) {
+                destination--;
+                const minMax = minMax2DArray(cups);
+                const min = minMax.min;
+                const max = minMax.max;
+                if (destination < min) destination = max;
+                //const ooDestinationCupIndex = cups.findIndex(a => a === destination);
+                destinationCupIndex = indexes[destination];
+                /*if (ooDestinationCupIndex != destinationCupIndex) {
+                    console.log(destination, cups, indexes);
+                    throw "ARR";
+                }*/
+                if (destinationCupIndex >= 0) break;
+            }
+            log("destination", destination, destinationCupIndex);
+            cups.splice(destinationCupIndex + 1, 0, ...threeCups);
+            indexes.forEach((a, i, arr) => {
+                if (a >= destinationCupIndex + 1) {
+                    arr[i] += 3;
+                }
+            })
+            threeCups.forEach((cup, i) => {
+                indexes[cup] = destinationCupIndex + 1 + i;
+            });
+            //const ooNewCurrent = cups.findIndex(a => a === currentCup);
+            const newCurrent = indexes[currentCup];
+            /*if (ooNewCurrent != newCurrent) {
+                console.log(destination, cups, indexes);
+                throw "ARR2";
+            }*/
+            current = newCurrent + 1;
+            if (current >= cups.length) current = 0;
+            return current;
+        }
+
+        /** @param {number[]} nexts @param {number} currentCup @param {number} max @returns {number} */
+        const move = (nexts, currentCup, max) => {
+            log("currentCup", currentCup);
+            const nextOne = nexts[currentCup];
+            const nextTwo = nexts[nextOne];
+            const nextThree = nexts[nextTwo];
+            nexts[currentCup] = nexts[nextThree];
+            const threeCups = [nextOne, nextTwo, nextThree];
+            log("threeCups", threeCups);
+            let destination = currentCup;
+            while (true) {
+                destination--;
+                if (destination <= 0) destination = max;
+                if (destination === nextOne || destination === nextTwo || destination === nextThree) continue;
+                break;
+            }
+            log("destination", destination);
+            const join = nexts[destination];
+            nexts[destination] = nextOne;
+            nexts[nextThree] = join;
+            return nexts[currentCup];
+        }
+
+        const cups = parseInput("219748365");
+        makeMillion(cups);
+        const nexts = makeNexts(cups);
+        const indexes = makeIndexes(cups);
+        let current = cups[0];
+        console.log("cups", cups);
+        console.log("nexts", nexts);
+        console.log("indexes", indexes);
+
+        const max = 1000000; // Math.max(...cups);
+
+
+        for (let i = 0; i < 10000000; i++) {
+
+
+            current = move(nexts, current, max);
+            log("nexts", nexts);
+            log("indexes", indexes);
+        }
+
+        /*PART ONE 
+        let str = "";
+        for (let i = oneIndex + 1; i != oneIndex; i++) {
+            if (i == cups.length) i = 0;
+            if (i == oneIndex) break;
+            str += cups[i];
+        }
+        console.log(str);
+        */
+
+        let n = 1;
+        let str = "";
+        while (true) {
+            n = nexts[n];
+            if (n === 1) break;
+            str += n;
+        }
+        console.log(str);
+
+        const afterOne = nexts[1];
+        const afterThat = nexts[afterOne];
+        console.log(afterOne);
+        console.log(afterThat);
+        console.log(afterOne * afterThat)
+
+    </script>
+</body>
+
+</html>

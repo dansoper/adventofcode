@@ -1,0 +1,144 @@
+<html>
+
+<body>
+    <script>
+        // @ts-check
+
+        /** @param {string} input @returns {number[][]} */
+        const parseInput = (input) => {
+            /** @type {number[][]} */
+            const pls = [];
+            const players = input.split("\n\n");
+            players.forEach(p => {
+                const ps = p.split("\n");
+                ps.splice(0, 1);
+                pls.push(ps.map(a => Number(a)));
+            })
+            return pls;
+        }
+
+        const input = `Player 1:
+44
+47
+29
+31
+10
+40
+50
+27
+35
+30
+38
+11
+14
+9
+42
+1
+26
+24
+6
+13
+8
+15
+21
+18
+4
+
+Player 2:
+17
+22
+28
+34
+32
+23
+3
+19
+36
+12
+45
+37
+46
+39
+49
+43
+25
+33
+2
+41
+48
+7
+5
+16
+20`;
+
+
+        const ps = parseInput(input);
+
+        while (ps[0].length > 0 && ps[1].length > 0) {
+            const one = ps[0].shift();
+            const second = ps[1].shift();
+            if (one > second) {
+                ps[0].push(one, second);
+            } else {
+                ps[1].push(second, one);
+            }
+        }
+        /** @type {number[]} */
+        const flat = ps.flat();
+        
+        /** @param {number[]} flat @returns {number} */
+        const sumCards = (flat) => {
+            return flat.reduce((prev, curr, i) => {
+                return ((flat.length - i) * curr) + prev;
+            }, 0)
+        }
+
+        console.log(sumCards(flat));
+
+        /** @param {number[]} packOne @param {number[]} packTwo @param {Set<string>} seen @returns {("one"|"two"|null)} */
+        const playRound = (packOne, packTwo, seen) => {
+            if (seen.has(packOne.join() + "|" + packTwo.join())) {
+                return "one";
+            }
+            seen.add(packOne.join() + "|" + packTwo.join());
+            const one = packOne.shift();
+            const second = packTwo.shift();
+            if (packOne.length >= one && packTwo.length >= second) {
+                const w = playGame([...packOne].slice(0, one), [...packTwo].slice(0, second));
+                if (w === "one") {
+                    packOne.push(one, second);
+                } else {
+                    packTwo.push(second, one);
+                }
+            } else {
+                if (one > second) {
+                    packOne.push(one, second);
+                } else {
+                    packTwo.push(second, one);
+                }
+            }
+        }
+
+        /** @param {number[]} packOne @param {number[]} packTwo @returns {("one"|"two")} */
+        const playGame = (packOne, packTwo) => {
+            const seen = new Set();
+            while (packOne.length > 0 && packTwo.length > 0) {
+                const res = playRound(packOne, packTwo, seen);
+                if (res != null) {
+                    return res;
+                }
+            }
+            return packOne.length > 0 ? "one" : "two"
+        }
+
+        const ps2 = parseInput(input);
+        const packOne = ps2[0];
+        const packTwo = ps2[1];
+        const res = playGame(packOne, packTwo);
+        const flat2 = packOne.length > 0 ? packOne : packTwo;
+        console.log(sumCards(flat2))
+
+    </script>
+</body>
+
+</html>
