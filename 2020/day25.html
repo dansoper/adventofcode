@@ -1,0 +1,60 @@
+<html>
+
+<body>
+    <script>
+            // @ts-check
+
+            let subject = 7;
+            
+            const doorPublicKey = 17773298;
+            let doorLoop = 0;
+            const cardPublicKey = 15530095;
+            let cardLoop = 0;
+
+            let val = 1;
+            for (let i = 0; ; i++) {
+                val = val * subject;
+                val = val % 20201227;
+                if (val === doorPublicKey) {
+                    doorLoop = i;
+                    break;
+                }
+            }
+
+            val = 1;
+            for (let i = 0; ; i++) {
+                val = val * subject;
+                val = val % 20201227;
+                if (val === cardPublicKey) {
+                    cardLoop = i;
+                    break;
+                }
+            }
+
+            console.log("cardLoop", cardLoop);
+            console.log("doorLoop", doorLoop);
+
+            let encKey = 0;
+            val = 1;
+            subject = cardPublicKey;
+            for (let i = 0; i <= doorLoop; i++) {
+                val = val * subject;
+                val = val % 20201227;
+            }
+            encKey = val;
+
+            let encKey2 = 0;
+            val = 1
+            subject = doorPublicKey;
+            for (let i = 0; i <= cardLoop; i++) {
+                val = val * subject;
+                val = val % 20201227;
+            }
+            encKey2 = val;
+
+            console.log(encKey);
+            console.log(encKey2);
+</script>
+</body>
+
+</html>

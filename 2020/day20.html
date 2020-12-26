@@ -1,0 +1,2293 @@
+<html>
+
+<body>
+    <script>
+        // @ts-check
+
+        /** @typedef {"left"|"leftFlipped"|"right"|"rightFlipped"|"top"|"topFlipped"|"bottom"|"bottomFlipped"} SideProperties */
+        /** @typedef {{ x: number, y: number }} Coordinate */
+        /** @typedef {{ id: number, flipped?: boolean, rotated?: number, top: BorderInfo, topFlipped: BorderInfo, left: BorderInfo, leftFlipped: BorderInfo, right: BorderInfo, rightFlipped: BorderInfo, bottom: BorderInfo, bottomFlipped: BorderInfo, matrix: string[][], sides: BorderInfo[], rightId?: number, leftId?: number, topId?: number, bottomId?: number, matchingIds?: number[], matched?: boolean, tilePosition?: Coordinate, matches?: { id: number, thisSide: SideProperties, connectionSide: SideProperties, final?: boolean }[] }} Tile */
+
+
+        /** @param input {string} @returns {Tile[]} */
+        const parseInput = (input) => {
+            /** @type {Tile[]} */
+            const tileArray = [];
+            const tiles = input.split("\n\n");
+            tiles.forEach(tile => {
+                const split = tile.split(":\n");
+                const matrix = parseMatrix(split[1]);
+
+                /** @type {BorderInfo[]} */
+                const sides = [];
+                const xLimit = matrix.length - 1;
+                const yLimit = matrix[0].length - 1;
+
+                let left = BorderInfo.none;
+                let leftFlipped = BorderInfo.none;
+                for (let i = 0; i <= yLimit; i++) {
+                    if (matrix[0][i] === "#") {
+                        left = left.add(i);
+                        leftFlipped = leftFlipped.add(yLimit - i);
+                    }
+                }
+                sides.push(left, leftFlipped);
+
+                let right = BorderInfo.none;
+                let rightFlipped = BorderInfo.none;
+                for (let i = 0; i <= yLimit; i++) {
+                    if (matrix[xLimit][i] === "#") {
+                        right = right.add(i);
+                        rightFlipped = rightFlipped.add(yLimit - i);
+                    }
+                }
+                sides.push(right, rightFlipped);
+
+                let top = BorderInfo.none;
+                let topFlipped = BorderInfo.none;
+                for (let i = 0; i <= xLimit; i++) {
+                    if (matrix[i][0] === "#") {
+                        top = top.add(i);
+                        topFlipped = topFlipped.add(yLimit - i);
+                    }
+                }
+                sides.push(top, topFlipped);
+
+                let bottom = BorderInfo.none;
+                let bottomFlipped = BorderInfo.none;
+                for (let i = 0; i <= xLimit; i++) {
+                    if (matrix[i][yLimit] === "#") {
+                        bottom = bottom.add(i);
+                        bottomFlipped = bottomFlipped.add(yLimit - i);
+                    }
+                }
+                sides.push(bottom, bottomFlipped);
+
+                tileArray.push({ id: Number(split[0].substring(5)), top, topFlipped, left, leftFlipped, right, rightFlipped, bottom, bottomFlipped, matrix, sides });
+            })
+            return tileArray;
+        }
+
+        /** @param {string} input @returns {string[][]}
+         * */
+        const parseMatrix = (input) => {
+            const matrix = [];
+            const lines = input.split("\n")
+            lines.forEach((line, y) => {
+                const chars = line.split("");
+                chars.forEach((char, x) => {
+                    if (matrix[x] == null) matrix[x] = [];
+                    matrix[x][y] = char;
+                });
+            });
+            return matrix;
+        }
+
+        class BorderInfo {
+            /** @type {number} */
+            state;
+
+            /** @param {number} state */
+            constructor(state) {
+                this.state = state;
+            }
+
+            static none = new BorderInfo(0);
+
+            /**
+             * @param {number} pos
+             * @returns {BorderInfo}
+             * */
+            add(pos) {
+                return new BorderInfo(this.state | (1 << pos));
+            }
+        }
+
+
+        const input = `Tile 3167:
+.##..#...#
+##.#......
+.##......#
+#.....#..#
+........##
+.#.......#
+###.#.....
+###.....##
+#..#....#.
+..####..##
+
+Tile 2411:
+...#####..
+#.#.......
+#..#..##.#
+####...###
+#..#....##
+#..##.#.##
+#...#.#..#
+.#..#..#..
+..#..##.##
+#....#.##.
+
+Tile 2909:
+.#.#..##.#
+##...###..
+#.#..#...#
+........##
+#.#####.##
+#..##..#..
+...#.#.#.#
+.........#
+.##..#...#
+....#....#
+
+Tile 1571:
+...#.#....
+...##...#.
+#...#.#..#
+#..#..#...
+#.......#.
+....#.##..
+...#.#.###
+#.#.#...##
+....#.....
+##..#..###
+
+Tile 1499:
+..##.#.##.
+##.....#..
+#....#.#.#
+#.#..#....
+#....###.#
+.#.#..#..#
+##..#....#
+.#..##....
+#.##..#..#
+..###....#
+
+Tile 3299:
+....#...##
+.....#..##
+##........
+##..#.#.#.
+.....###.#
+#.....#...
+....##.###
+##..#.....
+#.........
+.##..#....
+
+Tile 1021:
+#.#.#...##
+#..##.#...
+##..##...#
+###..##.##
+..#..#....
+##....#..#
+........#.
+##.#.###.#
+.###..###.
+####.##...
+
+Tile 1231:
+..##..#.##
+...###..#.
+##........
+#....#....
+...#.##..#
+#..#..#..#
+###....###
+....#..#..
+.#......#.
+###.#.####
+
+Tile 2467:
+..##......
+##........
+.....#....
+###..#.#.#
+.#.......#
+.#....#...
+###.#.....
+#....#..#.
+..#.#.....
+#.##......
+
+Tile 3797:
+.#.####...
+........#.
+#....#..##
+#..#...#.#
+..#.......
+.##..#..##
+#.#....#.#
+..........
+....#.#.#.
+..##..###.
+
+Tile 3691:
+.###....##
+.....###.#
+##.#.#.#.#
+.....##...
+.#........
+#####...##
+##...#...#
+..#.......
+#........#
+..#...##..
+
+Tile 1669:
+###.#####.
+..#......#
+.#...##..#
+#.#......#
+...#.#...#
+##.......#
+#.#....##.
+..#......#
+.#..#.....
+##.###.#..
+
+Tile 3637:
+..#.......
+....###.##
+#..#.#..#.
+.....#...#
+#....#....
+###....###
+.#......##
+........#.
+#.........
+#..#.#...#
+
+Tile 3203:
+.##.####.#
+#..###....
+.....##..#
+#....#...#
+#.....##..
+#..##..#..
+....#.#...
+...###...#
+#.....#...
+...###.###
+
+Tile 2477:
+..####....
+#..#...#.#
+...#...###
+..#.#.#...
+#.##...##.
+#.##...##.
+##.....###
+###....#.#
+#.#..##...
+..#####.#.
+
+Tile 1657:
+#...#...##
+##..#..#.#
+#..#..####
+#.##......
+##..#....#
+#.##.....#
+#..###...#
+#......#..
+###....###
+.####.#...
+
+Tile 3083:
+...#.##.#.
+#.#......#
+..........
+..####.#..
+......#.#.
+....#...#.
+#...#..#..
+...#..#...
+....#.....
+##..#.....
+
+Tile 1409:
+..#.#.#.#.
+....#....#
+#.........
+#..#.##..#
+........##
+.....#...#
+.......##.
+......#...
+#.##....#.
+.#..#..##.
+
+Tile 3391:
+..#.#..###
+##........
+##..#.....
+........#.
+..#....#.#
+#.....#...
+..##.#..##
+#...##.#..
+...###.#..
+...##.##.#
+
+Tile 3491:
+#.#..###.#
+..####.#..
+......#.#.
+#....##.##
+.#..#....#
+....#....#
+###.#.....
+......##..
+..#....#..
+.......#..
+
+Tile 3331:
+####..##..
+##........
+...##.....
+#.#.......
+.#.......#
+....##..##
+#.#....#..
+#..##...#.
+###.#.....
+###.##..##
+
+Tile 2687:
+#....#..##
+###..##..#
+####..#.#.
+..###..###
+#.......##
+#.....#...
+#.##.....#
+.#....#.#.
+.#...##...
+#########.
+
+Tile 3769:
+####.###..
+.#.#.#.##.
+.#.......#
+..........
+#....#.###
+........##
+..........
+.....#..##
+#.#......#
+##.#..#..#
+
+Tile 2579:
+##......#.
+.##....###
+##........
+#.......#.
+#.#.#...##
+###...#.##
+..#.##....
+.##..#..##
+###...####
+.#...###..
+
+Tile 1607:
+.#.....#..
+.........#
+###.......
+.#...##..#
+...#.#....
+###......#
+..#....#..
+#.........
+....#..#.#
+.##.#.#...
+
+Tile 2383:
+..#.....##
+...#.#...#
+......##..
+.........#
+......#.#.
+#...##.##.
+#....#..#.
+.#..##.#..
+.........#
+...#.....#
+
+Tile 2153:
+.###..##.#
+##.#####.#
+#..#......
+#...##....
+......#...
+##...#.#..
+#.#..#....
+##.#.....#
+..#.###...
+.##.#.###.
+
+Tile 3761:
+#.#.......
+#..#...#.#
+......#...
+.........#
+...#....##
+#...#....#
+..#.#.....
+#.........
+##.##.###.
+##.#...#.#
+
+Tile 1097:
+..#..#.###
+...#.#....
+#..#.....#
+###.......
+#....#.#.#
+#..#..####
+#.....#..#
+.....#....
+..#..#....
+#..#.#..##
+
+Tile 2131:
+.#.....###
+#......#.#
+.##.......
+#.....#..#
+.......##.
+#...#.#...
+#.#.....##
+#..#.#....
+.#.##.##..
+.#.#....##
+
+Tile 2777:
+.######..#
+.##..#..##
+........##
+#.......#.
+###.#.##.#
+#..##..#.#
+..###....#
+##.#....##
+......##..
+#....##...
+
+Tile 3373:
+.##.#.....
+..#....###
+.##.......
+#.......##
+..#...#..#
+.#.#.##...
+.##.....##
+..#...#..#
+....#....#
+....##.#..
+
+Tile 2351:
+#...#..#.#
+#......###
+#...#.....
+.##..#...#
+#.##.#..#.
+.##...#...
+##...#...#
+..#.....##
+#.#.......
+.#...###..
+
+Tile 1871:
+###..#....
+#.........
+#......#..
+#...#.....
+#.#.......
+#......#..
+#..#.##.##
+.....#..##
+.#..#####.
+.##..####.
+
+Tile 1847:
+.#..#..#.#
+#....#.#..
+.#..#.#..#
+#...#....#
+...#.#....
+..#.#.#.##
+..........
+##......##
+......#..#
+##.##.#.##
+
+Tile 1283:
+###.....#.
+#..#.#...#
+#...#.....
+.....#.###
+#....##...
+##........
+##..#....#
+..........
+###..#..#.
+..#.#.#...
+
+Tile 2357:
+.......#.#
+..#.##....
+#....#....
+#........#
+#...#.....
+#....#....
+....#.....
+#...#.....
+..#..#.#..
+#....#.###
+
+Tile 1609:
+.###.##...
+#....#.#.#
+#..##.....
+##.#..##..
+.#.#......
+....#...##
+.....#..##
+#.........
+..........
+#.####..#.
+
+Tile 1601:
+#.#..###.#
+#.#...#...
+#..#.....#
+#.#..##.##
+#.#.#....#
+#.#..##...
+......#...
+#...##..##
+#....#.##.
+#.####.#..
+
+Tile 2393:
+##.##.#.##
+#...##.#..
+##......#.
+...#....#.
+.#.....#..
+##........
+#....#...#
+#.........
+...#...#..
+###..#....
+
+Tile 2677:
+#...#..###
+.........#
+####......
+....#.#...
+#.#......#
+#........#
+##........
+#........#
+#........#
+..####.#.#
+
+Tile 2557:
+......##.#
+##...###.#
+#.......##
+#.#...####
+.#..#..#..
+#.........
+.......#..
+#.##...###
+##.#....#.
+...#..#.##
+
+Tile 1913:
+..#..#..#.
+.#....#...
+..#......#
+.#..##...#
+..#..##...
+#.#.#.##..
+##.......#
+.#..#..#..
+........##
+#.#.##.#..
+
+Tile 1229:
+####..#.#.
+...#.....#
+...#.....#
+#.###....#
+#.....#..#
+#..#...#.#
+.#.#.##.##
+....##....
+..........
+.#.###.##.
+
+Tile 3067:
+#.#..##...
+#.##.#..##
+.#....###.
+#.........
+.#....##..
+......#...
+.#..#...#.
+.##.###..#
+##...###.#
+......#.#.
+
+Tile 1031:
+..###.##..
+.#.#..#.##
+#...#.#..#
+........#.
+..........
+#..##.#..#
+#..#......
+.##.#...##
+#.......##
+.#.###..#.
+
+Tile 2753:
+.##.##.#.#
+........##
+##...#....
+.......#.#
+##.#.....#
+#.........
+....#.....
+..###.#..#
+...###....
+.#.###....
+
+Tile 2437:
+..#.#.##..
+........##
+#.....####
+#.#.......
+#........#
+##..#....#
+..#......#
+.#.##....#
+#....#.#..
+###.......
+
+Tile 2399:
+.####.#..#
+#..#.#...#
+#....#...#
+##.#..##..
+##..#.....
+......#...
+###..##...
+..#..#.##.
+..#.##....
+.....##.#.
+
+Tile 3169:
+#...#.####
+..###.....
+.....#....
+#.####...#
+###.###...
+.#.###.#..
+#.......#.
+#..##...##
+.......##.
+#....#.##.
+
+Tile 1091:
+####.#.#.#
+.##...##..
+..#...#..#
+#........#
+#......##.
+......#.##
+..#.....##
+.....###.#
+#..#.....#
+.#..##.#..
+
+Tile 2083:
+#..#####..
+...#.#...#
+....#.#...
+..#.#...#.
+#..##..#..
+##.#......
+#....#....
+#.....#.##
+...#..#.#.
+##..#..###
+
+Tile 1999:
+..#..##...
+...#.....#
+#.#.#..#..
+#..#...##.
+..##.#...#
+##.....#..
+#..##...##
+....#.##..
+##.#..#.#.
+##..####.#
+
+Tile 1741:
+#.#..#.#.#
+#.....#...
+...###...#
+..##.#.#..
+.....##..#
+##..##.#..
+###.......
+#....#..#.
+#...##...#
+##.##..#.#
+
+Tile 2297:
+#...#...#.
+..#.......
+##...#...#
+##..##...#
+##.#.....#
+#..#.....#
+..........
+#.....#.##
+#...#.#..#
+#..##.##.#
+
+Tile 1721:
+#####...#.
+#.#.#....#
+..#.##.#.#
+#.........
+##.......#
+.........#
+.........#
+#......#.#
+....#.....
+.....###..
+
+Tile 1873:
+.#.....#.#
+.##...#..#
+##........
+#.........
+........##
+.#........
+.....###.#
+.#.......#
+#.........
+##...##.#.
+
+Tile 1567:
+.#.#.##.#.
+..........
+..........
+##........
+.#..###..#
+#.........
+#....#....
+....##....
+.##.#....#
+##.##.####
+
+Tile 2251:
+##.###....
+...#.#...#
+#.#...#..#
+#........#
+...###.#.#
+...#...#.#
+..##......
+....#.....
+...#.....#
+#.#..#...#
+
+Tile 1399:
+#..#...##.
+..##......
+..........
+##.......#
+........#.
+.#........
+#.#..#.#.#
+#.#..#....
+#..####..#
+##..#.####
+
+Tile 2699:
+#.####.#.#
+#.#.......
+##...#.##.
+##...#..##
+#####.....
+...#.....#
+#.#.#...##
+#.....##.#
+..#..##.##
+##.##.#...
+
+Tile 2017:
+.....#..#.
+..#...#...
+.#..####..
+....#.#..#
+.....#....
+....#...##
+#........#
+..#.##...#
+##.##.#..#
+.##.#.####
+
+Tile 3917:
+.####..##.
+#.##..####
+#.....#.##
+......#...
+#.##.#....
+#..###..##
+....##.#.#
+........#.
+...##.##.#
+.#.##.##..
+
+Tile 3301:
+.#...#..##
+##..###...
+#.......##
+..####.#.#
+.#...#....
+#.......#.
+.#.......#
+..........
+#.........
+##..#####.
+
+Tile 2731:
+.#.##....#
+#...#.....
+##..##...#
+...#...#.#
+#.##.....#
+...#...#..
+.#........
+#...#..#..
+#...#...#.
+.#####.###
+
+Tile 3389:
+###.#.####
+#.##.#..#.
+.#...###.#
+#.#.....#.
+.....##...
+....#.#...
+.#.#.....#
+..#.##..##
+##....###.
+...##.#.##
+
+Tile 2837:
+#..#......
+....#.##..
+...#......
+#.#.#....#
+..###...##
+...#.....#
+....#.....
+.......###
+...#.##..#
+###...##..
+
+Tile 1511:
+....#.#..#
+..###.....
+#..##...#.
+#..#..#...
+.......#.#
+####..#...
+#..#..#...
+..#.#....#
+....#.#.##
+...###...#
+
+Tile 2069:
+..###..#.#
+.###.#..#.
+#.#.....##
+.....#....
+#.........
+#.#..#...#
+.#.##..#.#
+..##...#.#
+#####...##
+..#.##.###
+
+Tile 3181:
+#####.##.#
+#........#
+#.##......
+#.##....##
+#......#.#
+#....#..##
+###...#...
+...##..#.#
+#.......#.
+..#..#..##
+
+Tile 1627:
+.#.#....#.
+.###....##
+.##.#..#.#
+.#.....#..
+##..#....#
+##......#.
+#.#.......
+###...##.#
+###....##.
+.####..#..
+
+Tile 2971:
+...####.#.
+#..#.#....
+#...#.#.#.
+#..#...###
+.#........
+#.#.......
+..#.#.#...
+##...#....
+.#...#..#.
+..#.#.#.#.
+
+Tile 3847:
+...######.
+.#..#.....
+.........#
+##.##..###
+...#..#.##
+..##....##
+###......#
+#####....#
+#.......##
+....#.#.##
+
+Tile 3463:
+.#####.#.#
+#..#..##.#
+......#...
+#.#...###.
+#...#..##.
+#....#..##
+.........#
+..#....#.#
+....#.#...
+#...#.#.#.
+
+Tile 1181:
+##.#..####
+..........
+....#.#...
+.#......#.
+#....##.#.
+.#.......#
+#...#.....
+#...###..#
+..#...#..#
+#.##....##
+
+Tile 3851:
+##.......#
+.....#..#.
+#........#
+#........#
+##.....#..
+#..#.....#
+#..#...#.#
+.....#....
+.#....##.#
+.###......
+
+Tile 3229:
+..#......#
+........##
+.##....#..
+.#....#.#.
+...#..#.##
+#...#...#.
+.#.##..#..
+..#.#.....
+.#....##.#
+.#####....
+
+Tile 1061:
+..###....#
+.....##...
+......#..#
+#..#..#..#
+#...#.#...
+...#.##..#
+##..##.#..
+#........#
+.#..#....#
+#...##.#..
+
+Tile 2377:
+.#.....##.
+#........#
+.....#...#
+#..#..#...
+#....##..#
+..#......#
+#.......##
+##....#..#
+.........#
+#....##...
+
+Tile 3793:
+....#.#..#
+##.#...###
+#......#..
+#...#...#.
+...#..#...
+#...##...#
+....##...#
+#...#..###
+..........
+.##...###.
+
+Tile 3919:
+.#.##.....
+..##.#..#.
+#....###.#
+#..#...#..
+#..##..###
+....#..#..
+.#.......#
+..#.##....
+..#...#...
+.##..#..#.
+
+Tile 2389:
+#....##.#.
+...#....#.
+##.#.#....
+#.#...#..#
+...#.##..#
+...#.#...#
+.#....#...
+.###.....#
+.##..#...#
+#...###..#
+
+Tile 2689:
+#.#.#.#...
+#....#....
+#.....#..#
+.#..#....#
+.......#..
+......#.#.
+#...#..###
+...#..#...
+#.....#..#
+.####.##..
+
+Tile 1579:
+#..#...#..
+...#......
+#....#...#
+##..##...#
+#...#.....
+#....#....
+#...#.....
+....#....#
+#....#...#
+#...#.#...
+
+Tile 1747:
+..#####.##
+....#.....
+.......##.
+....#..##.
+###....#..
+.....#....
+#....##...
+...#.##..#
+#.#...#...
+#.###.##..
+
+Tile 2633:
+.#...####.
+....##...#
+.......#..
+##..#..#..
+#....###..
+#......#.#
+..........
+..#..#...#
+.....#..#.
+#...##....
+
+Tile 3581:
+####.###.#
+....#....#
+#...##...#
+....##...#
+#...##..#.
+..........
+#....#....
+.#..##...#
+#...###...
+##.#..##.#
+
+Tile 2879:
+....#.####
+....#...#.
+##.#..#..#
+#....#..##
+#.......#.
+.#.#####..
+....#....#
+#...##..##
+#..##....#
+..#.....#.
+
+Tile 1297:
+..#.######
+..#.....##
+..#.##.#..
+.#........
+..#....#.#
+#.........
+.##.......
+#..#..##..
+###.####..
+..##..#...
+
+Tile 1069:
+..#.#..#..
+...#...###
+#.#.....##
+.........#
+..#.......
+#........#
+..#.#..#.#
+..#..##.##
+##....##..
+#..#...##.
+
+Tile 2857:
+##.##.....
+..#....##.
+....#.....
+#.##..#..#
+..##.##...
+###....###
+.#........
+#...#.....
+..#...#...
+.#.##.#..#
+
+Tile 2963:
+....###.##
+..#.#.....
+##.......#
+......####
+.........#
+..........
+...##...#.
+#....#....
+#..##.....
+.#..###..#
+
+Tile 2111:
+......#..#
+#..#.....#
+#....###..
+.#...###..
+...#.#....
+......#.##
+.#........
+#........#
+..#...####
+#.#.###..#
+
+Tile 3187:
+####.#.##.
+#..#...#.#
+..#.##...#
+..#.......
+....#....#
+.#.##....#
+#.##.....#
+..##.....#
+....##...#
+#...#...#.
+
+Tile 3209:
+.....####.
+.##.#.#...
+...##.##..
+#..#...##.
+#....#....
+...#.....#
+#....#.#..
+#.#.....#.
+#.#..#....
+###..#.##.
+
+Tile 2243:
+#.....##..
+.#....###.
+#.......#.
+##..#..#..
+.###.#..##
+#.#...##..
+..#....#.#
+#..##....#
+###...#.##
+##....#.##
+
+Tile 3323:
+##.##..#.#
+#.#..#...#
+...#.###.#
+.....##.#.
+##.#.....#
+.....#.#..
+#.#.......
+#..#...#.#
+#.##......
+#.##..#.##
+
+Tile 3697:
+##.##.####
+.##......#
+#.#.....#.
+#.#...#..#
+#.........
+#.#.#....#
+#...#.#.##
+....#...#.
+.........#
+#...####..
+
+Tile 2767:
+##.####...
+.#.#.#..##
+...#....##
+#...#....#
+...#.#..#.
+##.#.....#
+.#..##....
+...###..##
+#..#...#.#
+##.#...#.#
+
+Tile 1307:
+......###.
+..#......#
+..#....#..
+#..#....#.
+#.#.#.#.##
+..#.#..###
+...#..#.#.
+#...#.#..#
+..#......#
+#..##.##..
+
+Tile 1117:
+.###.#...#
+##.......#
+##.......#
+###......#
+...####...
+#...##....
+#.##.#.#..
+...#....##
+..#.#....#
+#...#####.
+
+Tile 2713:
+..####.#..
+#.#.....##
+.#....##.#
+...#....##
+..#..#..##
+..........
+...#..#...
+....#.....
+......#..#
+..##..###.
+
+Tile 3449:
+##.......#
+#....#....
+..#..#.#.#
+.....#....
+.....#...#
+#..#..#..#
+..#.#....#
+#..#......
+....#.....
+.....#.#..
+
+Tile 3499:
+...#..#.#.
+#.......##
+..#.......
+...#..#...
+.....##..#
+......#..#
+#.........
+#..##.##..
+......#...
+.##...###.
+
+Tile 1861:
+####.###..
+....#..#.#
+..#..#....
+#.#.....#.
+#..##.#...
+#.##.#...#
+.....#.#.#
+##.##.....
+#.........
+#.#..#.#.#
+
+Tile 3833:
+.###...#.#
+#..#.....#
+.#........
+##.......#
+###.#....#
+.....#...#
+.....##..#
+.....#.#..
+##..####.#
+####...##.
+
+Tile 1237:
+##..#.##..
+..##.#.###
+##.#.....#
+###..#####
+.##....##.
+.#......##
+.....#...#
+#.##..##..
+.....#.##.
+..#..#.##.
+
+Tile 2003:
+.####.....
+.##.......
+#..#..#...
+#.##...#.#
+..#...#...
+#..#.#..##
+#..#.#...#
+#.......#.
+..##......
+##........
+
+Tile 2113:
+.#.#.#....
+#...#.#..#
+.........#
+.#..#..#..
+#....###.#
+#.#.......
+#........#
+..#.....##
+........#.
+#..#.##..#
+
+Tile 2447:
+#.##.####.
+#...#.....
+#.......#.
+.....#..##
+..###...#.
+#..##.##.#
+.#........
+#....#..#.
+#..#..#...
+.####..#..
+
+Tile 2347:
+.###.#..#.
+.......#..
+..#.......
+..#.###.##
+#...##....
+....#.....
+#....#.#.#
+...#.....#
+#........#
+...#....#.
+
+Tile 1447:
+..#..#.###
+..##.#...#
+#####...#.
+#...##..##
+...#......
+.#.#####..
+....#.....
+.....#...#
+#......#..
+#...#.###.
+
+Tile 3671:
+....##..#.
+##.#..#.##
+.##..#....
+###...####
+..#....##.
+#...#....#
+.........#
+..#......#
+..#...#...
+###.#.###.
+
+Tile 2851:
+.#..####..
+.....#....
+.#.#......
+.#.##.#...
+#........#
+.#..###...
+#.#...##..
+#.#.#.....
+.#........
+##...##..#
+
+Tile 2161:
+#.###.#.##
+......#.#.
+.#...##.##
+#.#....###
+#.#...#..#
+....#..#.#
+.#........
+...#..#.#.
+......####
+.###..####
+
+Tile 3469:
+##.#.###.#
+#...#.##.#
+.......##.
+#......###
+##.#......
+#.#..#..##
+..#.#.....
+..##....##
+..#.#...##
+#....##..#
+
+Tile 2293:
+#.###...##
+.##....##.
+##..##.#.#
+....#.....
+#.#..#....
+##.#..#..#
+...###....
+....#.....
+#..#..#...
+.#.######.
+
+Tile 3907:
+...#.#.##.
+....#....#
+...#.##...
+#..#...#.#
+.....#...#
+#...#...##
+.##....#.#
+.#.....#.#
+#..#...###
+.##..#...#
+
+Tile 2143:
+.###....##
+#.#.#...##
+.....#.#..
+......#.##
+...#..#.##
+###..#...#
+......##..
+.#...#..##
+.....#...#
+.##..#####
+
+Tile 1583:
+...###.##.
+..#......#
+##..#..##.
+#.##...##.
+#.#....#.#
+..........
+#.#......#
+.#.##..##.
+#.####.##.
+#...###.##
+
+Tile 2141:
+#....####.
+.###.#.#.#
+.........#
+..##.##..#
+..#..#..#.
+##..#.##.#
+#.....#.##
+..#..##...
+..#####...
+##...###.#
+
+Tile 3511:
+.#..##.#.#
+..#.#..##.
+#.##.##...
+..##.##...
+#..#.##..#
+.##....###
+.....#...#
+........##
+#........#
+####......
+
+Tile 2789:
+#.#..#....
+#.#..#....
+#.#...##..
+..#..##...
+#.##.#...#
+.#.....#..
+####.##...
+.....##..#
+#.....#.#.
+#.#.##.#..
+
+Tile 1051:
+.....#.#..
+##........
+......#...
+##......##
+#........#
+#....#.#.#
+#.#..#...#
+#..#....##
+#.#.....#.
+.#..###...
+
+Tile 1151:
+.....##.##
+.#..#...##
+.#.......#
+..##...#.#
+#......###
+#....#.##.
+#..#......
+#.#.....##
+.##..#..##
+.#.#...###
+
+Tile 3527:
+##..##.#..
+.#..#....#
+.....#.#..
+..###....#
+###......#
+#....##..#
+...##...#.
+##..#.#.##
+...#.##..#
+.###.#..#.
+
+Tile 1223:
+#####..##.
+...##.#...
+...##...#.
+....#.#.##
+...#......
+##.#..#..#
+.##.###...
+#..#.#.#..
+..##..##.#
+.#.##.#.##
+
+Tile 3109:
+#.##..#...
+###...##..
+...#.#...#
+#......##.
+###.......
+#.....#.#.
+#....#....
+#..#.##..#
+....#....#
+.#....#...
+
+Tile 1787:
+........##
+....#.####
+#...#..#.#
+#....##..#
+.#.##.#..#
+.#.#..#..#
+......##.#
+#..#.#.#.#
+......###.
+#.#..#.#..
+
+Tile 2833:
+.#..#.##..
+#.#.#....#
+#.........
+...#.#..##
+.......##.
+###.....##
+..##.....#
+#.#....#..
+.#......##
+.#.#.####.
+
+Tile 1783:
+#.#..#.#..
+...#...#.#
+##....##..
+##...#..##
+......#...
+#.....##..
+.....#...#
+.#..#.##.#
+.#.......#
+..#..###.#
+
+Tile 2711:
+#.#.###.##
+......#.##
+..##......
+#.#.....#.
+.#.#.....#
+.....#....
+#..##...#.
+###..#.##.
+#..##.....
+#####...##
+
+Tile 2203:
+#.####...#
+......#..#
+#..#......
+..####...#
+.#...##.##
+#........#
+#.#...##.#
+##........
+###..####.
+##....#.#.
+
+Tile 1901:
+.##...##.#
+....##....
+#..#.#...#
+..#..#...#
+..........
+#.##.#....
+##........
+...#......
+.....#..##
+..##...###
+
+Tile 2591:
+.....#..#.
+.......##.
+...#.#....
+#........#
+##.#.#..#.
+.#.......#
+##...#...#
+.....#...#
+#.##......
+###.##.##.
+
+Tile 2371:
+##.####.#.
+#.#..#....
+.##..###..
+..#..#....
+...#.#....
+...#..#...
+......#.##
+.#.......#
+#....#.#.#
+...#####.#
+
+Tile 1907:
+..#.###...
+...#..####
+#..#.#..##
+#....##.#.
+.#.#.....#
+...#....##
+.....##...
+#.....#..#
+..#.#..#.#
+.##.####.#
+
+Tile 1531:
+###.#.#.#.
+#.........
+.....#..#.
+..#.#.#..#
+#.#.#.#.##
+......##..
+..........
+##........
+#.#......#
+.#.#....#.
+
+Tile 1619:
+..#..#....
+..#.#..#.#
+#.#.#.....
+#....#....
+..#......#
+#####....#
+##.......#
+#...#.....
+#.....#...
+.#..#####.
+
+Tile 3541:
+#.#....##.
+#...#..#..
+...#..#.##
+#.####...#
+..#.#....#
+.#........
+.#.......#
+#....###..
+...###...#
+.####....#
+
+Tile 1523:
+#.#...##..
+#..#..#.#.
+...#..#...
+..#.#.#...
+.....#....
+###.#....#
+#.......##
+.......###
+........#.
+#.#.#.#.##
+
+Tile 1777:
+#.#..#.###
+..#..#..#.
+##..####.#
+#...##...#
+#...#...#.
+........##
+......##..
+...##...##
+.##.#...#.
+...##.#...
+
+Tile 3019:
+.#..####..
+....#....#
+#....#....
+..##.....#
+##.......#
+#.#...#.#.
+#..#....##
+#....#..##
+....#...#.
+#......##.
+
+Tile 2053:
+.##..#....
+.....#....
+#.#..##...
+....#.#.#.
+#..#.#..##
+#.#.......
+#.#.##.#..
+#.#..#....
+##...##..#
+..##.###..`;
+
+        const tiles = parseInput(input);
+        const idsWithTwoUnmatched = [];
+
+        tiles.forEach((a, i) => {
+            const matches = tiles.filter((b, j) =>
+                i !== j &&
+                (
+                    a.sides.some(c => b.sides.map(d => d.state).find(e => e === c.state) != null)
+                )
+            );
+            //console.log(matches);
+            a.matchingIds = matches.map(c => c.id);
+            if (matches.length == 2) {
+                idsWithTwoUnmatched.push(a.id);
+            }
+        })
+        console.log(idsWithTwoUnmatched);
+        console.log(idsWithTwoUnmatched.reduce((prev, cur) => prev * cur, 1));
+
+
+        /** @param {Tile[]} tiles */
+        const getMatchDetails = (tiles) => {
+            const positions = ["left", "leftFlipped", "right", "rightFlipped", "top", "topFlipped", "bottom", "bottomFlipped"]
+            tiles.forEach(tile => {
+                tile.matches = [];
+                tile.matchingIds.forEach(id => {
+                    const match = tiles.find(a => a.id === id);
+                    positions.forEach(/** @param {SideProperties} thisPos */ thisPos => {
+                        positions.forEach(/** @param {SideProperties} otherPos */ otherPos => {
+                            if (match[otherPos].state === tile[thisPos].state) {
+                                tile.matches.push({ id, thisSide: thisPos, connectionSide: otherPos });
+                            }
+                        });
+                    })
+                });
+            });
+        }
+
+        /** @param {Tile[]} tiles */
+        const clarifyMatchDetails = (tiles) => {
+            const topLeft = tiles.find(a => a.matches.length === 4 && a.matches.find(b => b.thisSide === "right") != null && a.matches.find(b => b.thisSide === "bottom") != null);
+            topLeft.matches = topLeft.matches.filter(a => a.thisSide === "bottom" || a.thisSide === "right");
+            topLeft.matches.find(a => a.thisSide === "right").final = true;
+            /*topLeft.matches.forEach(a => {
+                a.final = true;
+            });*/
+            //console.log(topLeft);
+            clarifyMatchDetailsForTile(topLeft, tiles, 0, 0, "x");
+            const topRow = tiles.filter(a => a.matches.find(b => b.final === true && (b.thisSide === "left" || b.thisSide === "right" || b.thisSide === "leftFlipped" || b.thisSide === "rightFlipped")));
+            //console.log(topRow);
+            topRow.forEach((item, i) => {
+                /*let n = item.matches.findIndex(b => b.thisSide == "topFlipped");
+                if (n >= 0) item.matches.splice(n, 1);
+                n = item.matches.findIndex(b => b.thisSide == "bottomFlipped");
+                if (n >= 0) item.matches.splice(n, 1);
+                item.matches.forEach(m => m.final = true);*/
+                //if (item.id === 1999) debugger;
+                const nonFinals = item.matches.filter(a => !a.final);
+                nonFinals.filter(a => !a.thisSide.includes("Flipped")).forEach(a => {
+                    a.final = true;
+                    const i = item.matches.findIndex(b => b.thisSide == a.thisSide + "Flipped");
+                    if (i >= 0) item.matches.splice(i, 1);
+                });
+                clarifyMatchDetailsForTile(item, tiles, item.tilePosition.x, 0, "y");
+            });
+
+            // TODO here - this isn:t enough - do matrix x,y
+            const leftCol = tiles.filter(a => a.tilePosition?.x == 0);
+            //console.log(leftCol);
+
+            leftCol.forEach((item, i) => {
+                const nonFinals = item.matches.filter(a => !a.final);
+                if (item.rotated >= 180) {
+                    nonFinals.filter(a => a.thisSide.includes("Flipped")).forEach(a => {
+                        a.final = true;
+                        const i = item.matches.findIndex(b => b.thisSide == a.thisSide.replace("Flipped", ""));
+                        if (i >= 0) item.matches.splice(i, 1);
+                    });
+
+                } else {
+                    nonFinals.filter(a => !a.thisSide.includes("Flipped")).forEach(a => {
+                        a.final = true;
+                        const i = item.matches.findIndex(b => b.thisSide == a.thisSide + "Flipped");
+                        if (i >= 0) item.matches.splice(i, 1);
+                    });
+
+                }
+                clarifyMatchDetailsForTile(item, tiles, item.tilePosition.x, item.tilePosition.y, "x");
+            });
+        }
+
+        /** @param {Tile} tile @param {Tile[]} tiles @param {number} x @param {number} y @param {"x"|"y"} direction */
+        const clarifyMatchDetailsForTile = (tile, tiles, x, y, direction) => {
+            tile.tilePosition = { x, y };
+            tile.matches.filter(a => a.final).forEach(a => {
+                const matchedTile = tiles.find(b => b.id === a.id);
+                const match = matchedTile.matches.find(b => b.thisSide === a.connectionSide);
+                //console.log(tile, matchedTile);
+                if (match.final != true) {
+                    if (direction === "y") {
+                        if (match.thisSide === "top") {
+                            matchedTile.rotated = 0;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "topFlipped") {
+                            matchedTile.rotated = 0;
+                            matchedTile.flipped = true;
+                        } else if (match.thisSide === "leftFlipped") {
+                            matchedTile.rotated = 90;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "left") {
+                            matchedTile.rotated = 90;
+                            matchedTile.flipped = true;
+                        } else if (match.thisSide === "bottomFlipped") {
+                            matchedTile.rotated = 180;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "bottom") {
+                            matchedTile.rotated = 180;
+                            matchedTile.flipped = true;
+                        } else if (match.thisSide === "right") {
+                            matchedTile.rotated = 270;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "rightFlipped") {
+                            matchedTile.rotated = 270;
+                            matchedTile.flipped = true;
+                        }
+                    } else if (direction === "x") {
+                        if (match.thisSide === "left") {
+                            matchedTile.rotated = 0;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "right") {
+                            matchedTile.rotated = 0;
+                            matchedTile.flipped = true;
+                        } else if (match.thisSide === "bottom") {
+                            matchedTile.rotated = 90;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "top") {
+                            matchedTile.rotated = 90;
+                            matchedTile.flipped = true;
+                        } else if (match.thisSide === "rightFlipped") {
+                            matchedTile.rotated = 180;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "leftFlipped") {
+                            matchedTile.rotated = 180;
+                            matchedTile.flipped = true;
+                        } else if (match.thisSide === "topFlipped") {
+                            matchedTile.rotated = 270;
+                            matchedTile.flipped = false;
+                        } else if (match.thisSide === "bottomFlipped") {
+                            matchedTile.rotated = 270;
+                            matchedTile.flipped = true;
+                        }
+                    }
+                    match.final = true;
+                    if (match.thisSide === "left") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "leftFlipped");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "rightFlipped");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "right");
+                        if (m != null) m.final = true;
+                    } else if (match.thisSide === "leftFlipped") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "left");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "right");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "rightFlipped");
+                        if (m != null) m.final = true;
+                    } else if (match.thisSide === "right") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "rightFlipped");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "leftFlipped");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "left");
+                        if (m != null) m.final = true;
+                    } else if (match.thisSide === "rightFlipped") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "right");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "left");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "leftFlipped");
+                        if (m != null) m.final = true;
+                    } else if (match.thisSide === "top") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "topFlipped");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "bottomFlipped");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "bottom");
+                        if (m != null) m.final = true;
+                    } else if (match.thisSide === "topFlipped") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "top");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "bottom");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "bottomFlipped");
+                        if (m != null) m.final = true;
+                    } else if (match.thisSide === "bottom") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "bottomFlipped");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "topFlipped");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "top");
+                        if (m != null) m.final = true;
+                    } else if (match.thisSide === "bottomFlipped") {
+                        const i = matchedTile.matches.findIndex(a => a.thisSide === "bottom");
+                        matchedTile.matches.splice(i, 1);
+                        const j = matchedTile.matches.findIndex(a => a.thisSide === "top");
+                        if (j >= 0) matchedTile.matches.splice(j, 1);
+                        const m = matchedTile.matches.find(a => a.thisSide === "topFlipped");
+                        if (m != null) m.final = true;
+                    }
+                    clarifyMatchDetailsForTile(matchedTile, tiles, x + (direction === "x" ? 1 : 0), y + (direction === "y" ? 1 : 0), direction);
+                }
+            });
+        }
+
+        // rotate 0 top, right, bottom, left 
+        // | flipX topFlipped, left, bottomFlipped, right
+        // XX | flipY bottom, rightFlipped, top, leftFlipped
+        // XX | flipXY bottomFlipped, leftFlipped, topFlipped, rightFlipped
+        // rotate 90 leftFlipped, top, rightFlipped, bottom
+        // | flipX left, bottom, right, top
+        // XX | flipY rightFlipped, topFlipped, leftFlipped, bottomFlipped
+        // XX | flipXY right, bottomFlipped, left, topFlipped
+        // rotate 180 bottomFlipped, leftFlipped, topFlipped, rightFlipped
+        // | flipX bottom, rightFlipped, top, leftFlipped
+        // XX | flipY topFlipped, left, bottomFlipped, right
+        // XX | flipXY top, right, bottom, left
+        // rotate 270 right, bottomFlipped, left, topFlipped
+        // | flipX rightFlipped, topFlipped, leftFlipped, bottomFlipped
+        // XX | flipY left, bottom, right, top
+        // XX | flipXY leftFlipped, top, rightFlipped, bottom
+
+        /** @param {Tile[]} tiles @returns {{ x: number, y: number, char: string }[]} */
+        const makeBigMatrix = (tiles) => {
+            /** @type {{ x: number, y: number, char: string }[]} */
+            const bigMatrix = [];
+            let build2 = "";
+            const maxX = Math.max(...tiles.filter(a => a.tilePosition).map(a => a.tilePosition.x));
+            const maxY = Math.max(...tiles.filter(a => a.tilePosition).map(a => a.tilePosition.y));
+            for (let y = 0; y <= maxY; y++) {
+                const row = [];
+                for (let x = 0; x <= maxX; x++) {
+                    const item = tiles.find(a => a.tilePosition?.x == x && a.tilePosition?.y == y)
+                    let matrix = rotateMatrix(item.matrix, item);
+                    row.push(matrix);
+                    build2 += item.id + " ";
+                }
+                const matrixMax = row[0].length;
+                for (let my = 0; my < matrixMax; my++) {
+                    row.forEach((item, x) => {
+                        for (let mx = 0; mx < matrixMax; mx++) {
+                            bigMatrix.push({ x: (x * matrixMax) + mx, y: (y * matrixMax) + my, char: item[mx][my] });
+                        }
+                    })
+                }
+                build2 += "\n"
+            }
+            console.log(build2);
+            return bigMatrix;
+        }
+
+        /** @param {Tile} tile @param {string[][]} matrix @returns {string[][]}  */
+        function rotateMatrix(matrix, tile) {
+            /** @type {{ x: number, y: number, char: string }[]} */
+            const storedMatrix = [];
+            matrix.forEach((item, x) => {
+                item.forEach((char, y) => {
+                    storedMatrix.push({ x, y, char });
+                });
+            });
+            storedMatrix.forEach(m => {
+                const xy = rotateWaypoint(m.x, m.y, tile.rotated ?? 0, matrix.length);
+                m.x = xy.x;
+                m.y = xy.y;
+            });
+            if (tile.flipped) {
+                storedMatrix.forEach(m => {
+                    m.x = matrix.length - m.x - 1;
+                })
+            }
+            const newMatrix = [];
+            storedMatrix.forEach(m => {
+                if (newMatrix[m.x] == null) newMatrix[m.x] = [];
+                newMatrix[m.x][m.y] = m.char
+            });
+            return newMatrix;
+        }
+
+        /** @param {number} rotated @param {boolean} flipped @param {{ x: number, y: number, char: string }[]} matrix */
+        function rotateBigMatrix(matrix, rotated, flipped) {
+            const maxX = Math.max(...bigMatrix.map(a => a.x));
+            matrix.forEach(m => {
+                const xy = rotateWaypoint(m.x, m.y, rotated, maxX + 1);
+                m.x = xy.x;
+                m.y = xy.y;
+            });
+            if (flipped) {
+                matrix.forEach(m => {
+                    m.x = matrix.length - m.x - 1;
+                })
+            }
+        }
+
+        /** @param {number} x @param {number} y @param {number} rotation @returns{{ x: number, y: number }} */
+        const rotateWaypoint = (x, y, rotation, max) => {
+            let newWX = x;
+            let newWY = y;
+            if (rotation > 0) {
+                newWX = max - y - 1;
+                newWY = x;
+                rotation -= 90;
+                if (rotation > 0) {
+                    const s = rotateWaypoint(newWX, newWY, rotation, max);
+                    newWX = s.x;
+                    newWY = s.y;
+                }
+            }
+            return { x: newWX, y: newWY };
+        }
+
+        /** @param {{ x: number, y: number, char: string }[]} bigMatrix @param {number} size */
+        const removeBorders = (bigMatrix, size) => {
+            const maxX = Math.max(...bigMatrix.map(a => a.x));
+            const maxY = Math.max(...bigMatrix.map(a => a.y));
+            let loc = 0;
+            let firstCol;
+            while ((firstCol = bigMatrix.findIndex(a => a.x === 0)) >= 0) {
+                bigMatrix.splice(firstCol, 1);
+            }
+            bigMatrix.forEach(a => a.x--);
+            while (true) {
+                loc += size - 1 - 1;
+                let col;
+                while ((firstCol = bigMatrix.findIndex(a => a.x === loc)) >= 0) {
+                    bigMatrix.splice(firstCol, 1);
+                }
+                const a = bigMatrix.filter(a => a.x > loc);
+                if (a.length == 0) break;
+                a.forEach(a => a.x--);
+                while ((firstCol = bigMatrix.findIndex(a => a.x === loc)) >= 0) {
+                    bigMatrix.splice(firstCol, 1);
+                }
+                const b = bigMatrix.filter(a => a.x > loc);
+                if (b.length == 0) break;
+                b.forEach(a => a.x--);
+            }
+            loc = 0;
+            let firstRow;
+            while ((firstRow = bigMatrix.findIndex(a => a.y === 0)) >= 0) {
+                bigMatrix.splice(firstRow, 1);
+            }
+            bigMatrix.forEach(a => a.y--);
+            while (true) {
+                loc += size - 1 - 1;
+                let col;
+                while ((firstCol = bigMatrix.findIndex(a => a.y === loc)) >= 0) {
+                    bigMatrix.splice(firstCol, 1);
+                }
+                const a = bigMatrix.filter(a => a.y > loc);
+                if (a.length == 0) break;
+                a.forEach(a => a.y--);
+                while ((firstCol = bigMatrix.findIndex(a => a.y === loc)) >= 0) {
+                    bigMatrix.splice(firstCol, 1);
+                }
+                const b = bigMatrix.filter(a => a.y > loc);
+                if (b.length == 0) break;
+                b.forEach(a => a.y--);
+            }
+        }
+
+        /** @param {{ x: number, y: number, char: string }[]} bigMatrix */
+        const draw = (bigMatrix) => {
+            let build = "";
+            const maxX = Math.max(...bigMatrix.map(a => a.x));
+            const maxY = Math.max(...bigMatrix.map(a => a.y));
+            for (let y = 0; y <= maxY; y++) {
+                for (let x = 0; x <= maxX; x++) {
+                    build += bigMatrix.find(a => a.x === x && a.y === y).char;
+                }
+                build += "\n";
+            }
+            const a = document.createElement("pre");
+            a.innerHTML = build;
+            document.body.append(a);
+        }
+
+        /** @param {{ x: number, y: number, char: string }[]} bigMatrix @return {number} */
+        const spotPattern = (bigMatrix) => {
+            const pattern = [
+                { x: 0, y: 1 },
+                { x: 1, y: 2 },
+                { x: 4, y: 2 },
+                { x: 5, y: 1 },
+                { x: 6, y: 1 },
+                { x: 7, y: 2 },
+                { x: 10, y: 2 },
+                { x: 11, y: 1 },
+                { x: 12, y: 1 },
+                { x: 13, y: 2 },
+                { x: 16, y: 2 },
+                { x: 17, y: 1 },
+                { x: 18, y: 1 },
+                { x: 18, y: 0 },
+                { x: 19, y: 1 },
+            ];
+
+            let count = 0;
+
+            const maxX = Math.max(...bigMatrix.map(a => a.x));
+            const maxY = Math.max(...bigMatrix.map(a => a.y));
+
+            for (let y = 0; y <= maxY; y++) {
+                for (let x = 0; x <= maxX; x++) {
+                    let f = true;
+                    for (let p of pattern) {
+                        const pos = bigMatrix.find(a => a.x === x + p.x && a.y === y + p.y);
+                        if (pos == null || pos.char === ".") {
+                            f = false;
+                            break;
+                        }
+                    }
+                    if (f == true) {
+                        count++;
+                        for (let p of pattern) {
+                            const pos = bigMatrix.find(a => a.x === x + p.x && a.y === y + p.y);
+                            pos.char = "O"
+                        }
+                    }
+                }
+            }
+            return count;
+        }
+
+        getMatchDetails(tiles);
+        clarifyMatchDetails(tiles);
+
+        const bigMatrix = makeBigMatrix(tiles);
+        removeBorders(bigMatrix, tiles[0].matrix.length);
+
+        let rotated = 0;
+        let flipped = false;
+        while (true) {
+            let num = spotPattern(bigMatrix);
+            console.log(num);
+            if (num > 0) break;
+            rotated += 90;
+            if (rotated === 0) flipped = true;
+            rotateBigMatrix(bigMatrix, rotated, flipped);
+        }
+
+
+        draw(bigMatrix);
+
+        console.log(bigMatrix.flat().filter(a => a.char == "#").length);
+
+    </script>
+</body>
+
+</html>
