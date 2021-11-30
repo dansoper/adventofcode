@@ -1,0 +1,28 @@
+<html>
+
+<body>
+    <script>
+            // @ts-check
+            const input = `\x27\x28`;
+
+            const splitIntoLines = (inp) => {
+                return inp.split("\n");
+            }
+
+            const countAllChars = (inp) => {
+                return inp.length;
+            }
+
+            const countStringChars = (inp) => {
+                // get rid of hex
+                const matches = /\\x([0-9a-f]{2})/g.exec(inp);
+                console.log(matches);
+                // get rid of double quotes
+                // get rid of backslashes
+
+            }
+            countStringChars(input);
+    </script>
+</body>
+
+</html>
