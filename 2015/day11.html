@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head><title>Day 11</title></head>
+    <body>
+        <script>
+            //@ts-check
+
+            function Password(cur) {
+                this.Current = cur;
+                this.increment = () => {
+                    for (let i = 0; i < 8; i++) {
+                        const char = this.Current.substr(7 - i, 1);
+                        if (char == "z") {
+                            this.Current = this.Current.substring(0, 7-i) + "a" + this.Current.substring(8-i);
+                        } else {
+                            const c = char.charCodeAt(0);
+                            const newC = String.fromCharCode(c + 1);
+                            this.Current = this.Current.substring(0, 7-i) + newC + this.Current.substring(8-i);
+                            break;
+                        }
+                    }
+                }
+
+                this.isValid = () => {
+                    if (this.Current.indexOf("i") >= 0 || this.Current.indexOf("o") >= 0 || this.Current.indexOf("l") >= 0) return false;
+
+                    let doubles = [];
+                    for (let i = 0; i < 7; i++) {
+                        const c1 = this.Current.charCodeAt(i);
+                        const c2 = this.Current.charCodeAt(i + 1);
+                        if (c1 == c2 && doubles.find(a => a == c1) == null) doubles.push(c1);
+                    }
+                    if (doubles.length < 2) return false;
+
+                    let asc = false;
+                    for (let i = 0; i < 6; i++) {
+                        const c1 = this.Current.charCodeAt(i);
+                        const c2 = this.Current.charCodeAt(i + 1);
+                        const c3 = this.Current.charCodeAt(i + 2);
+                        if (c1 == c2 - 1 && c2 == c3 - 1) {
+                            asc = true;
+                        }
+                    }
+                    if (!asc) return false;
+                    return true;
+                }
+            }
+
+            var p = new Password("cqjxxzaa");
+            while (true) {
+                //console.log(p.Current);
+                if (!p.isValid()) p.increment();
+                else break;
+            }
+            console.log(p.Current);
+        </script>
+    </body>
+</html>
