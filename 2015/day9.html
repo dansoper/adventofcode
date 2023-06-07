@@ -1,0 +1,110 @@
+<html>
+
+<body>
+    <script>
+            // @ts-check
+            const input = `Tristram to AlphaCentauri = 34
+Tristram to Snowdin = 100
+Tristram to Tambi = 63
+Tristram to Faerun = 108
+Tristram to Norrath = 111
+Tristram to Straylight = 89
+Tristram to Arbre = 132
+AlphaCentauri to Snowdin = 4
+AlphaCentauri to Tambi = 79
+AlphaCentauri to Faerun = 44
+AlphaCentauri to Norrath = 147
+AlphaCentauri to Straylight = 133
+AlphaCentauri to Arbre = 74
+Snowdin to Tambi = 105
+Snowdin to Faerun = 95
+Snowdin to Norrath = 48
+Snowdin to Straylight = 88
+Snowdin to Arbre = 7
+Tambi to Faerun = 68
+Tambi to Norrath = 134
+Tambi to Straylight = 107
+Tambi to Arbre = 40
+Faerun to Norrath = 11
+Faerun to Straylight = 66
+Faerun to Arbre = 144
+Norrath to Straylight = 115
+Norrath to Arbre = 135
+Straylight to Arbre = 127`;
+
+            const parseLine = line => {
+                const [firstHalf, distance] = line.split(" = ");
+                const [from, to] = firstHalf.split(" to ");
+                return { from, to, distance: parseInt(distance)  };
+            }
+
+            const parseInput = inp => {
+                const lines = inp.split("\n");
+                const objs = [];
+                lines.forEach(line => {
+                    const obj = parseLine(line);
+                    objs.push(obj);
+                });
+
+                const locations = [];
+                objs.forEach(o => {
+                    if (locations.find(a => a.name == o.from) == null) {
+                        locations.push({ name: o.from, paths: [] });
+                    }
+                    if (locations.find(a => a.name == o.to) == null) {
+                        locations.push({ name: o.to, paths: [] });
+                    }
+                });
+
+                objs.forEach(o => {
+                    const l = locations.find(a => a.name == o.from);
+                    l.paths.push({ to: o.to, distance: o.distance });
+                    const ll = locations.find(a => a.name == o.to);
+                    ll.paths.push({ to: o.from, distance: o.distance });
+                });
+                return locations;
+            }
+
+            const locations = parseInput(input);
+
+            var state = { beenTo: [], toGoTo: [], distance: 0 };
+
+            var initialStates = [];
+            locations.forEach(l => {
+                initialStates.push({ at: l.name, beenTo: [l.name], toGoTo: locations.map(a => a.name).filter(a => a != l.name), distance: 0 });
+            })
+            console.log(initialStates);
+
+            const cloneState = (state) => {
+                return { at: state.at, beenTo: [...state.beenTo], toGoTo: [...state.toGoTo], distance: state.distance };
+            }
+
+            const oneStage = (states) => {
+                var newStates = [];
+                states.forEach(state => {
+                    state.toGoTo.forEach(to => {
+                        var newState = cloneState(state);
+                        newState.beenTo.push(to);
+                        newState.distance += locations.find(a => a.name == state.at).paths.find(a => a.to == to).distance;
+                        newState.at = to;
+                        newState.toGoTo = newState.toGoTo.filter(a => a != to);
+                        newStates.push(newState);
+                    });
+                });
+                return newStates;
+            }
+            let s = initialStates;
+            while (true) {
+                s = oneStage(s);
+                if (s[0].toGoTo.length == 0) break;
+            }
+
+            s = s.sort((a, b) => a.distance - b.distance);
+            console.log(s[0]);
+            console.log(s[s.length -1]);
+
+
+    </script>
+</body>
+
+</html>

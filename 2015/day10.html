@@ -1,0 +1,31 @@
+<html>
+
+<body>
+    <script>
+            // @ts-check
+            const input = ``;
+
+            const parseNumber = (n) => {
+                let groups = "";
+                const letters = n.split("");
+                for (let i = 0; i < letters.length; i++) {
+                    let j = 0;
+                    while (letters[i] == letters[i + j]) {
+                        j++;
+                    }
+                    groups += (j) + letters[i];
+                    i += j - 1;
+                }
+               return groups; 
+            }
+
+            let s = "1113122113";
+            for (let i = 0; i < 50; i++) {
+                s = parseNumber(s);
+            }
+            console.log(s.length);
+
+    </script>
+</body>
+
+</html>
