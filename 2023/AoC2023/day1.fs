@@ -19,15 +19,15 @@ let combineNumbersToStringAndBackToNumber (item: int seq): int =
 
 let replaceWordNumbers item = 
     item
-    |> replaceString "one" "one1one"
-    |> replaceString "two" "two2two"
-    |> replaceString "three" "three3three"
-    |> replaceString "four" "four4four"
-    |> replaceString "five" "five5five"
-    |> replaceString "six" "six6six"
-    |> replaceString "seven" "seven7seven"
-    |> replaceString "eight" "eight8eight"
-    |> replaceString "nine" "nine9nine"
+    |> replaceString "one" "o1e"
+    |> replaceString "two" "t2o"
+    |> replaceString "three" "t3e"
+    |> replaceString "four" "f4r"
+    |> replaceString "five" "f5e"
+    |> replaceString "six" "s6x"
+    |> replaceString "seven" "s7n"
+    |> replaceString "eight" "e8t"
+    |> replaceString "nine" "n9e"
 
 // turns out this doesn't do the job, as twone should count as tWO AND One!
 let replaceWordNumbersWithRegex item = 
