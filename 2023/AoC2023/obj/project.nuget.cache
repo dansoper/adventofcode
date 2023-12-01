@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "QPG0KBbpz9gfYm5TIa7MVoVqOiTZGSHrwt+ZcFauFTZ5nKCE92vcNbWZaeHGhOeK5JupuNGqdIg7XzQzvWmSMQ==",
+  "success": true,
+  "projectFilePath": "/Users/dansoper/Documents/Code/adventofcode/2023/AoC2023/AoC2023.fsproj",
+  "expectedPackageFiles": [
+    "/Users/dansoper/.nuget/packages/fsharp.core/7.0.200/fsharp.core.7.0.200.nupkg.sha512"
+  ],
+  "logs": []
+}
