@@ -1,10 +1,10 @@
 module Day1
 
+open Utils
 open System
 open System.Text.RegularExpressions
 
 let isFirstOrLast len (index, item) = index = 0 || index = len - 1
-let charToInt c = int c - int '0'
 
 let filterForFirstOrLast seq = 
     let len = Seq.length seq
@@ -16,9 +16,6 @@ let combineNumbersToStringAndBackToNumber (item: int seq): int =
     let str2 = item |> Seq.last |> string
     let combined = str1 + str2
     combined |> int
-
-let replaceString (oldValue: string) newValue (message: string) =
-    message.Replace(oldValue, newValue)
 
 let replaceWordNumbers item = 
     item
@@ -55,7 +52,6 @@ let processLine line =
     let alteredLine: string = if partTwo then replaceWordNumbers line else line
     
     alteredLine
-    |> Seq.toList
     |> Seq.filter Char.IsDigit
     |> Seq.map charToInt
     |> Seq.indexed
@@ -64,9 +60,8 @@ let processLine line =
     |> combineNumbersToStringAndBackToNumber
 
 let runDay (input: string) =
-    let lines = input.Split([|"\n"|], StringSplitOptions.None)
-
-    lines
+    input
+    |> splitByLine
     |> Array.map processLine
     |> Array.sum
     
