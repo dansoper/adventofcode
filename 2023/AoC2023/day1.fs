@@ -4,6 +4,8 @@ open Utils
 open System
 open System.Text.RegularExpressions
 
+let partTwo = true
+
 let isFirstOrLast len (index, item) = index = 0 || index = len - 1
 
 let filterForFirstOrLast seq = 
@@ -48,7 +50,6 @@ let replaceWordNumbersWithRegex item =
 
 
 let processLine line =
-    let partTwo = true
     let alteredLine: string = if partTwo then replaceWordNumbers line else line
     
     alteredLine
