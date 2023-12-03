@@ -9,5 +9,9 @@ let replaceString (oldValue: string) newValue (message: string) =
 /// Split a string by line break
 let splitByLine (input: string) = input.Split([|"\n"|], StringSplitOptions.None)
 
+/// Split into characters
+let splitToGrid (line: string): Char seq = line
+
+
 /// If the char is '0' to '9', return the int 0 to 9
 let charToInt (c: Char) = int c - int '0'

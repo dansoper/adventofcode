@@ -3,4 +3,4 @@
 let printDay day test dayFunc =
     day |> getInput test |> dayFunc |> printfn "%A"
 
-printDay 2 false Day2.runDay
+printDay 4 true Day4.runDay
