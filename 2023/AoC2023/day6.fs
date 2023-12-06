@@ -1,7 +1,5 @@
 module Day6
 
-open Utils
-
 let partTwo = false
 
 let distanceForHoldTime (hold: int64) total =
