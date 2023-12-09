@@ -5,4 +5,4 @@ let partTwo = true
 let printDay day test dayFunc =
     day |> getInput test |> dayFunc |> printfn "%A"
 
-printDay 8 true Day8.runDay
+printDay 10 true Day10.runDay
