@@ -2,6 +2,8 @@ module Day11
 
 open Utils
 
+let partTwo = true
+
 type GalaxyDistances = {
     Coord: Coord
     Galaxies: GalaxyDistances array
@@ -23,30 +25,32 @@ let wholeColsAreDots (grid: char array array) =
         prev
         |> Array.mapi (fun index item -> if item && cur[index] = '.' then true else false)    
     ) starter
+    |> Array.indexed
+    |> Array.filter (fun (index, item) -> item)
+    |> Array.map (fun (index, item) -> index)
+
+let repeat = if partTwo then 1000000L else 2
+
+let sum (from: Coord) (until: Coord) (expandRows: int array) (expandCols: int array) =
+    let xDiff = int64 (abs (from.x - until.x))
+    let yDiff = int64 (abs (from.y - until.y))
+    let expandedYs = expandRows |> Array.filter (fun item -> (item >= from.y && item <= until.y) || (item <= from.y && item >= until.y)) |> Array.length
+    let expandedXs = expandCols |> Array.filter (fun item -> (item >= from.x && item <= until.x) || (item <= from.x && item >= until.x)) |> Array.length
+    xDiff + yDiff + (int64 expandedYs * (repeat - 1L)) + (int64 expandedXs * (repeat - 1L))
 
 let runDay (input: string) =
-    let repeat = 2
 
-    let partGrid = 
+    let grid = 
         input
         |> splitByLine
         |> Array.map (fun x -> x |> splitToGrid |> Array.ofSeq)
-        |> Array.collect (fun x -> 
-            if wholeRowIsDot x 
-            then [|0..(repeat - 1)|] |> Array.map (fun y -> x)
-            else [|x|])
 
-    let expandCols = wholeColsAreDots partGrid
-
-    let grid =
-        partGrid
-        |> Array.map (fun x -> 
-            x
-            |> Array.indexed
-            |> Array.collect (fun (index, item) -> 
-                if expandCols[index]
-                then [|0..(repeat - 1)|] |> Array.map (fun y -> item)
-                else [|item|]))
+    let expandRows = 
+        grid
+        |> Array.indexed
+        |> Array.filter (fun (index, item) -> wholeRowIsDot item)
+        |> Array.map (fun (index, item) -> index) 
+    let expandCols = wholeColsAreDots grid
 
     let galaxies =
         grid
@@ -70,9 +74,9 @@ let runDay (input: string) =
         })
         |> Array.map (fun main -> 
             main.Galaxies
-            |> Array.map (fun child -> abs (main.Coord.x - child.Coord.x) + abs(main.Coord.y - child.Coord.y))
+            |> Array.map (fun child -> sum main.Coord child.Coord expandRows expandCols)
         )
         |> Array.collect (fun x -> x)
         |> Array.sum
 
-    num / 2
+    num / 2L
