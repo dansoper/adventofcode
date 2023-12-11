@@ -1,6 +1,7 @@
 module Day10
 
 open Utils
+open System.Collections.Generic
 
 type Compass =
     | North = 0
@@ -58,12 +59,51 @@ let runDay (input: string) =
     let mutable count = 1
     let mutable pos = { x = startX; y = startY + 1 }
     let mutable prevPos = start
+
+    let path = new List<Coord>()
+    path.Add start
+
     while not reached do
         let memory = pos
+        path.Add pos
         pos <- move grid start prevPos pos
         reached <- if pos = start then true else reached
         count <- count + 1
         prevPos <- memory
 
-    count / 2
+    printf "Part 1: %A\n" (count / 2)
 
+    //printf "%A\n" (Seq.length path)
+    //printf "%A" (Array.ofSeq path)
+
+    let mutable count = 0
+    for y = 0 to (Array.length grid) - 1 do
+        let mutable inside = false
+        let mutable inLine = 0
+        for x = 0 to (Array.length grid[0]) - 1 do
+            let c = if grid[y][x] = 'S' then 'F' else grid[y][x]
+            if path.Contains ({ x = x; y = y })
+                then
+                    printf "Path contains %A %A \n" x y 
+                    if (c = '|')
+                    then 
+                        inside <- not inside
+                        printf "Flipping inside to %A\n" inside
+                    elif (c = 'L' || c = 'F')
+                    then
+                        inLine <- if c = 'L' then 1 else -1
+                        inside <- not inside
+                    elif (c = 'J' || c = '7')
+                    then
+                        if (inLine = 1 && c = 'J') || (inLine = -1 && c = '7')
+                            then
+                            inside <- not inside
+                            printf "Flipping inside to %A\n" inside
+                        inLine <- 0
+                else 
+                    printf "Path not contains %A %A \n" x y 
+                    if inside then 
+                        count <- count + 1
+                        printf "Count now %A\n" count
+
+    count
