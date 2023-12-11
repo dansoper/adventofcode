@@ -2,6 +2,11 @@ module Utils
 
 open System
 
+type Coord = {
+    x: int
+    y: int
+}
+
 /// Just a normal string replace function
 let replaceString (oldValue: string) newValue (message: string) =
     message.Replace(oldValue, newValue)
