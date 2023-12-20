@@ -26,3 +26,11 @@ let splitToGrid (line: string): Char seq = line
 
 /// If the char is '0' to '9', return the int 0 to 9
 let charToInt (c: Char) = int c - int '0'
+
+// Greatest Common Divisor
+let rec gcd (a: int64) (b: int64): int64 =
+    if b = 0 then a else gcd b (a % b)
+
+// Lowest Common Multiple
+let lcm (a: int64) (b: int64): int64 =
+    a / (gcd a b) * b

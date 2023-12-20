@@ -14,14 +14,6 @@ type Mapping = {
 let allEndWithZ (arr: string seq): bool =
     arr |> Seq.filter (fun x -> x.EndsWith "Z") |> Seq.length = (Seq.length arr)
 
-// Greatest Common Divisor
-let rec gcd (a: int64) (b: int64): int64 =
-    if b = 0 then a else gcd b (a % b)
-
-// Lowest Common Multiple
-let lcm (a: int64) (b: int64): int64 =
-    a / (gcd a b) * b
-
 let runDay (input: string) =
     let sections = 
         input
