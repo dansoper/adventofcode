@@ -4,18 +4,6 @@ open Utils
 
 let partTwo = false
 
-let diff (a: Coord) (b: Coord): Coord =
-    { x = b.x - a.x; y = b.y - a.y }
-
-let add (a: Coord) (b: Coord): Coord =
-    { x = a.x + b.x; y = a.y + b.y }
-
-let flip (a: Coord): Coord =
-    { x = a.y; y = a.x }
-
-let flipAndReverse (a: Coord): Coord =
-    { x = -a.y; y = -a.x }
-
 let isOutOfBounds (c: Coord) (grid: int array array): bool =
     c.x < 0 || c.y < 0 || c.x >= Array.length grid[0] || c.y >= grid.Length
 
@@ -91,7 +79,7 @@ let goToPosition (info: PathInfo) (coord: Coord) (grid: int array array): PathIn
         HeatLoss = newHeatLoss
         StraightCount = newStraightCount
         Complete = complete
-        Score = newHeatLoss + (lastC.x - coord.x) + (lastC.y - coord.y)
+        Score = 1 * ((lastC.x - coord.x) + (lastC.y - coord.y)) * (1 * newHeatLoss)
     }
 
 let singleRoundOld (paths: PathInfo array) (grid: int array array) =
@@ -105,7 +93,8 @@ let singleRoundOld (paths: PathInfo array) (grid: int array array) =
     |> Array.filter (fun x -> not x.Complete)
     |> Array.sortBy (fun x -> x.HeatLoss)
 
-let addOption (newOptions: PathInfo array) (options: PathInfo array) =
+let addOption (options: PathInfo array) (newOptions: PathInfo array) =
+    //printfn "in %A %A" (options |> Array.map (fun x -> x.Score)) (newOptions |> Array.map (fun x -> x.Score))
     let firstSuccess = successfulScores |> Array.tryHead
     let firstSuccessVal =
         match firstSuccess with
@@ -114,24 +103,26 @@ let addOption (newOptions: PathInfo array) (options: PathInfo array) =
 
     let mutable nearlyOptions = 
         options
-        |> Array.filter (fun x -> not x.Complete && (firstSuccessVal = 0 || x.HeatLoss < firstSuccessVal))
+        |> Array.filter (fun x -> (not x.Complete) && (firstSuccessVal = 0 || x.HeatLoss < firstSuccessVal))
 
     newOptions
     |> Array.iter (fun item ->
+        //printfn "I %A" (nearlyOptions |> Array.map (fun x -> x.Score))
+
         let index = Array.tryFindIndex (fun (item2: PathInfo) -> item2.Score >= item.Score) nearlyOptions
         match index with
         | Some(x) -> 
-            printfn "Found index %A %A" index item.Score
-            let newX = if x > 0 then x - 1 else x
+            //printfn "Found index %A %A" index item.Score
+            let newX = x
             nearlyOptions <- Array.insertAt newX item nearlyOptions
         | None -> 
-            printfn "No found %A" item.Score
+            //printfn "No found %A" item.Score
             nearlyOptions <- Array.append nearlyOptions [|item|]
     )
 
-    printfn "S %A" (nearlyOptions |> Array.map (fun x -> x.Score))
+    //printfn "S %A" (nearlyOptions |> Array.map (fun x -> x.Score))
 
-    printfn "SS %A" (nearlyOptions |> Array.map (fun x -> x.Score) |> Array.sort)
+    //printfn "SS %A" (nearlyOptions |> Array.map (fun x -> x.Score) |> Array.sort)
 
 
     //printfn "HERE WE ARE %A" nearlyOptions
@@ -150,7 +141,7 @@ let singleRound (paths: PathInfo array) (grid: int array array) (pathInfos: Path
 let doRounds (grid: int array array) = 
     let mutable options = [|{ Path = [|{ x = 0; y = 0 }|]; HeatLoss = 0; StraightCount = 0; Complete = false; Score = 0 }|]
     let mutable i = 0
-    while (options |> Array.length) > 0 && i < 10 do
+    while (options |> Array.length) > 0 do
         i <- i + 1
         options <- singleRound options grid options
         if i % 100 = 0 then printfn "Round %A and options length = %A and complete length = %A" i (Array.length options) (Array.length successfulScores)

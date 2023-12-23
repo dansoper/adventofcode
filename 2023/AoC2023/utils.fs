@@ -1,10 +1,18 @@
 module Utils
 
+// Split into further modules
+
 open System
 
 type Coord = {
     x: int
     y: int
+}
+
+type Coord3D = {
+    x: int
+    y: int
+    z: int
 }
 
 /// Just a normal string replace function
@@ -34,3 +42,15 @@ let rec gcd (a: int64) (b: int64): int64 =
 // Lowest Common Multiple
 let lcm (a: int64) (b: int64): int64 =
     a / (gcd a b) * b
+
+let diff (a: Coord) (b: Coord): Coord =
+    { x = b.x - a.x; y = b.y - a.y }
+
+let add (a: Coord) (b: Coord): Coord =
+    { x = a.x + b.x; y = a.y + b.y }
+
+let flip (a: Coord): Coord =
+    { x = a.y; y = a.x }
+
+let flipAndReverse (a: Coord): Coord =
+    { x = -a.y; y = -a.x }

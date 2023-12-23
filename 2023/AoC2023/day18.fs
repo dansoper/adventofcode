@@ -71,7 +71,7 @@ let runInstructions (inst: Instruction array) =
     (painted, extraCount)
 
 // Shoelace formula (actually 'Triangle' formula)
-let shoelaceFormula coords =
+let shoelaceFormula (coords: Coord array) =
     let paired =
         coords
         |> Array.pairwise

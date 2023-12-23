@@ -3,7 +3,7 @@ module Day19
 open Utils
 open System.Text.RegularExpressions
 
-let partTwo = false
+let partTwo = true
 
 type ProcessStep = {
     Test: char
@@ -105,6 +105,56 @@ let actOnPart (input: Part) (mappings: Map<string, Process>) =
             goForLabel <- foundStep.Action
     (input, success)
 
+let isSuccessful (whichOne: char) (input: int) (mappings: Map<string, Process>) =
+    let mutable goForLabel = "in"
+    let mutable complete = false
+    let mutable success = 0
+    while complete = false do
+        let thisProcess = mappings[goForLabel]
+        let foundStep = 
+            thisProcess.Steps
+            |> Array.find (fun step ->
+                let operation =
+                    match step.Operation with
+                    | '-' -> eq
+                    | '>' -> gt
+                    | '<' -> lt
+                    | _ -> failwith "christmas pudding"
+                if step.Test = whichOne
+                    then operation input step.Value
+                    else true
+            )    
+        if foundStep.Action = "A"
+            then
+                success <- 1
+                complete <- true
+        elif foundStep.Action = "R"
+            then
+                success <- -1
+                complete <- true
+        else
+            goForLabel <- foundStep.Action
+    success = 1
+
+let findRangesForScore (input: char) (mappings: Map<string, Process>) =
+    let mutable goForLabel = "in"
+    
+    mappings.Values
+    |> Array.ofSeq
+    |> Array.map (fun thisProcess ->
+        thisProcess.Steps
+        |> Array.map (fun step ->
+            if step.Test = input
+                then [|step.Value;if step.Operation = '>' then step.Value + 1 else step.Value - 1|]
+                else [||]
+        )
+        |> Array.collect (fun x -> x)
+    )
+    |> Array.collect (fun x -> x)
+    |> Array.append [|1;4000|]
+    |> Array.sort
+        
+
 let runDay (input: string) =
     let processes = 
         input
@@ -115,11 +165,57 @@ let runDay (input: string) =
         |> parseToParts
 
     if partTwo then
-        parts
-        |> Array.map (fun x -> actOnPart x processes)
-        |> Array.filter (fun x -> snd x > 0)
-        |> Array.map (fun (part, x) -> part.x + part.m + part.a + part.s)
-        |> Array.sum
+       (* let options = 
+            [|'x';'m';'a';'s'|]
+            |> Array.map (fun char ->
+                let oo = findRangesForScore char processes
+                let pairs = (oo |> Array.pairwise |> Array.indexed |> Array.filter (fun (index, item) -> index % 2 = 0) |> Array.map (fun (index, item) -> item))
+                pairs
+                |> Array.map(fun (start, finish) -> 
+                if isSuccessful 'x' start processes
+                    then finish - start + 1
+                    else 0
+                )
+                |> Array.sum
+            )
+        printfn "%A" options
+
+        printfn "%A" (findRangesForScore 'm' processes)
+        printfn "%A" (findRangesForScore 'a' processes)
+        printfn "%A" (findRangesForScore 's' processes)*)
+
+        let pairsOfPairs = 
+            [|'x';'m';'a';'s'|]
+            |> Array.map (fun char ->
+                let oo = findRangesForScore char processes
+                let pairs = (oo |> Array.pairwise |> Array.indexed |> Array.filter (fun (index, item) -> index % 2 = 0) |> Array.map (fun (index, item) -> item))
+                pairs
+            )
+
+        let all = 
+            pairsOfPairs
+            |> Array.item 0
+            |> Array.map (fun (x, endX) -> 
+                pairsOfPairs
+                |> Array.item 1
+                |> Array.map (fun (m, endM) -> 
+                    pairsOfPairs
+                    |> Array.item 2
+                    |> Array.map (fun (a, endA) -> 
+                        pairsOfPairs
+                        |> Array.item 3
+                        |> Array.map (fun (s, endS) -> 
+                            { x = x; m = m; a = a; s = s}
+                        )
+                    )
+                    //|> Array.collect (fun x -> x)
+                )
+               // |> Array.collect (fun x -> x)
+            )
+           // |> Array.collect (fun x -> x)
+
+        printfn "%A %A" all (Array.length all)
+        23
     else 
         parts
         |> Array.map (fun x -> actOnPart x processes)
