@@ -9,10 +9,21 @@ type Coord = {
     y: int
 }
 
+type CoordBig = {
+    xx: int64
+    yy: int64
+}
+
 type Coord3D = {
     x: int
     y: int
     z: int
+}
+
+type Coord3DBig = {
+    xx: int64
+    yy: int64
+    zz: int64
 }
 
 /// Just a normal string replace function
