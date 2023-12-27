@@ -62,25 +62,38 @@ let getOptionsForPosition (info: PathInfo) (grid: int array array) =
 
 let lastCoord grid = { y = (grid |> Array.length) - 1; x = (grid[0] |> Array.length) - 1 } 
 
+let mutable bestScoresAtPositions: Map<(Coord * Coord), int> = Map.empty
+
 let goToPosition (info: PathInfo) (coord: Coord) (grid: int array array): PathInfo =
-    let lastC = lastCoord grid
-    
     let newHeatLoss = info.HeatLoss + (heatAtCoord coord grid)
-    let complete = if coord = lastCoord grid then true else false
-    if complete
-        then 
-            successfulScores <- successfulScores |> Array.append [|newHeatLoss|] |> Array.sort
-            //printfn "Found %A %A %A" info coord grid
-    let thisDiff = diff info.lastCoord coord
-    let newStraightCount = if thisDiff = info.lastDiff then info.StraightCount + 1 else 0
-    beens <- beens |> Array.append [|{ From = info.lastCoord; Coord = coord; HeatLoss = newHeatLoss }|]
-    {
-        Path = Array.append info.Path [|coord|] 
-        HeatLoss = newHeatLoss
-        StraightCount = newStraightCount
-        Complete = complete
-        Score = 1 * ((lastC.x - coord.x) + (lastC.y - coord.y)) * (1 * newHeatLoss)
-    }
+    if not (bestScoresAtPositions.ContainsKey (info.lastCoord, coord)) || bestScoresAtPositions[(info.lastCoord, coord)] > newHeatLoss then
+        bestScoresAtPositions <- bestScoresAtPositions |> Map.add (info.lastCoord, coord) newHeatLoss
+        let lastC = lastCoord grid
+        
+        let complete = if coord = lastCoord grid then true else false
+        if complete
+            then 
+                successfulScores <- successfulScores |> Array.append [|newHeatLoss|] |> Array.sort
+                //printfn "Found %A %A %A" info coord grid
+        let thisDiff = diff info.lastCoord coord
+        let newStraightCount = if thisDiff = info.lastDiff then info.StraightCount + 1 else 0
+        beens <- beens |> Array.append [|{ From = info.lastCoord; Coord = coord; HeatLoss = newHeatLoss }|]
+        {
+            Path = Array.append info.Path [|coord|] 
+            HeatLoss = newHeatLoss
+            StraightCount = newStraightCount
+            Complete = complete
+            Score = 10 * ((lastC.x - coord.x) + (lastC.y - coord.y)) * (1 * newHeatLoss)
+        }
+    else
+        //printfn "Rejecting coord %A with new score %A and better score %A" coord newHeatLoss bestScoresAtPositions[coord]
+        {
+            Path = info.Path
+            HeatLoss = 0
+            StraightCount = 0
+            Complete = true
+            Score = 0
+        }
 
 let singleRoundOld (paths: PathInfo array) (grid: int array array) =
     paths
@@ -106,6 +119,7 @@ let addOption (options: PathInfo array) (newOptions: PathInfo array) =
         |> Array.filter (fun x -> (not x.Complete) && (firstSuccessVal = 0 || x.HeatLoss < firstSuccessVal))
 
     newOptions
+    |> Array.filter (fun x -> not x.Complete)
     |> Array.iter (fun item ->
         //printfn "I %A" (nearlyOptions |> Array.map (fun x -> x.Score))
 
@@ -156,3 +170,8 @@ let runDay (input: string) =
 
     doRounds grid
     successfulScores |> Array.head
+    successfulScores
+
+
+// Not 865, too low
+// Not 941, too high
