@@ -2,10 +2,97 @@ module Day17
 
 open Utils
 
-let partTwo = false
+let partTwo = true
 
 let isOutOfBounds (c: Coord) (grid: int array array): bool =
     c.x < 0 || c.y < 0 || c.x >= Array.length grid[0] || c.y >= grid.Length
+
+let lastCoord grid = { y = (grid |> Array.length) - 1; x = (grid[0] |> Array.length) - 1 } 
+
+type State = {
+    Position: Coord
+    Diff: Coord
+    StraightCount: int
+}
+
+type State with
+    //member x.toString = x.Position.x.ToString() + "-" + x.Position.y.ToString() + "-" + x.Diff.x.ToString() + "-" + x.Diff.y.ToString() + "-" + x.StraightCount.ToString()
+    member x.toString = x.Position.x + (x.Position.y * 1000) + ((x.Diff.x + 5) * 1000000) + ((x.Diff.y + 5) * 10000000) + (x.StraightCount * 100000000)
+
+
+let heatAtCoord (c: Coord) (grid: int array array): int = grid[c.y][c.x]
+
+let work (grid: int array array) =
+    let mutable scoresAndStates: Map<int, State array> = Map.empty
+    let mutable previousStates: int array = Array.empty
+    let mutable finalScore = 0
+
+    let moveAndAddState (currentCost: int) (currentCoord: Coord) (newStraightCount: int) (diff: Coord) =
+        let newCoord = add currentCoord diff
+        if not (isOutOfBounds newCoord grid) then
+            let newCost = currentCost + (heatAtCoord newCoord grid)
+            if newCoord = lastCoord grid && (partTwo = false || newStraightCount > 3) then
+                if finalScore = 0 || newCost < finalScore then
+                    finalScore <- newCost
+                    printfn "possible %A" finalScore
+            else
+                //printfn "new coord %A" newCoord
+                let newState = { Position = newCoord; StraightCount = newStraightCount; Diff = diff }
+                if not (previousStates |> Array.contains newState.toString ) then
+                    //scoresAndStates <- if Map.containsKey newCost scoresAndStates then scoresAndStates else Map.add newCost Array.empty scoresAndStates
+                    
+                    let item = scoresAndStates |> Map.tryFind newCost
+                    let newItem = 
+                        match item with
+                        | Some item -> item |> Array.append [|newState|]
+                        | None -> Array.empty |> Array.append [|newState|]
+                    scoresAndStates <- scoresAndStates |> Map.add newCost newItem
+
+                    //scoresAndStates <- scoresAndStates |> Map.change newCost (fun x -> 
+                    //        match x with
+                    //        | Some x -> Some(x |> Array.append [|newState|])
+                    //        | None -> Some(Array.empty |> Array.append [|newState|])
+                    //    )
+                    previousStates <- previousStates |> Array.append [|newState.toString|]
+        //else
+            //printfn "Out of bounds: %A" newCoord
+
+    moveAndAddState 0 { x = 0; y = 0 } 1 { x = 1; y = 0 }
+    moveAndAddState 0 { x = 0; y = 0 } 1 { x = 0; y = 1 }
+
+    //printfn "Options found: %A %A" (scoresAndStates |> Map.keys) (lastCoord grid)
+
+    let mutable lowestKeyIsGreaterThanScore = false
+
+    while lowestKeyIsGreaterThanScore = false do
+        let lowestKey = scoresAndStates |> Map.keys |> Seq.min
+        let bestStates = scoresAndStates |> Map.find lowestKey
+        scoresAndStates <- scoresAndStates |> Map.remove lowestKey
+
+        if lowestKey > finalScore && finalScore > 0 then
+            lowestKeyIsGreaterThanScore <- true
+
+        printfn "Options remaining: %A, count: %A" (scoresAndStates |> Map.keys) (bestStates |> Array.length)
+
+        bestStates
+        |> Array.iter (fun item ->
+            if partTwo then
+                if item.StraightCount > 3 then
+                    moveAndAddState lowestKey item.Position 1 { x = item.Diff.y; y = -item.Diff.x }
+                    moveAndAddState lowestKey item.Position 1 { x = -item.Diff.y; y = item.Diff.x }
+                if item.StraightCount < 10 then
+                    moveAndAddState lowestKey item.Position (item.StraightCount + 1) item.Diff
+            else
+                moveAndAddState lowestKey item.Position 1 { x = item.Diff.y; y = -item.Diff.x }
+                moveAndAddState lowestKey item.Position 1 { x = -item.Diff.y; y = item.Diff.x }
+
+                if item.StraightCount < 3 then
+                    moveAndAddState lowestKey item.Position (item.StraightCount + 1) item.Diff
+        )
+
+    finalScore
+
+// 1048 too low
 
 type PathInfo = {
     Path: Coord array
@@ -32,7 +119,6 @@ type PathInfo with
         let leftAndRight = [|add x.lastCoord (flipAndReverse x.lastDiff);add x.lastCoord (flip x.lastDiff)|]
         if x.StraightCount < 2 then Array.append leftAndRight [|add x.lastCoord x.lastDiff|] else leftAndRight
 
-let heatAtCoord (c: Coord) (grid: int array array): int = grid[c.y][c.x]
 
 // No point going to a coordinate more than once in same route
 // If approaching a coordinate from a direction that we have already done, stop if heatloss is same or higher
@@ -60,7 +146,6 @@ let getOptionsForPosition (info: PathInfo) (grid: int array array) =
     //printfn "Options found: %A" (opts |> Array.length)
     opts
 
-let lastCoord grid = { y = (grid |> Array.length) - 1; x = (grid[0] |> Array.length) - 1 } 
 
 let mutable bestScoresAtPositions: Map<(Coord * Coord), int> = Map.empty
 
@@ -168,10 +253,13 @@ let runDay (input: string) =
         |> Array.map (fun x -> splitToGrid x)
         |> Array.map (fun x -> x |> Seq.map (fun y -> charToInt y) |> Array.ofSeq)
 
-    doRounds grid
-    successfulScores |> Array.head
-    successfulScores
+    work grid
+    //doRounds grid
+    //successfulScores |> Array.head
+    //successfulScores
 
 
 // Not 865, too low
 // Not 941, too high
+// pt2
+// Not 1048
